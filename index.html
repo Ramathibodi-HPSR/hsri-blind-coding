@@ -8,21 +8,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500&family=Prompt:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=1.0.0">
+<link rel="stylesheet" href="app.css?v=1.2.0">
+<script>try { const t = JSON.parse(localStorage.getItem('hsri-coding-theme')); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
-<header class="topbar">
+<header class="topbar" id="topbar">
   <div class="wrap topbar__in">
-    <span class="brand">HSRI Blind Coding<span>จัดประเภทโครงการวิจัยที่ สวรส. ให้ทุน แบบไม่เห็นคำตอบของผู้อื่น</span></span>
+    <span class="brand">HSRI Blind Coding<span class="brand__sub">ลงรหัสโครงการวิจัยที่ สวรส. ให้ทุน แบบปกปิดคำตอบ</span></span>
     <span class="acct" id="acct" hidden>
       <span class="acct__name" id="acctName"></span>
-      <button class="btn btn--ghost" type="button" id="logoutBtn">ออกจากระบบ</button>
+      <button class="btn btn--ghost btn--sm" type="button" id="themeBtn">ธีม: อัตโนมัติ</button>
+      <button class="btn btn--ghost btn--sm" type="button" id="logoutBtn">ออกจากระบบ</button>
     </span>
   </div>
-  <nav class="wrap tabs" id="tabs" role="tablist" aria-label="หน้าจอ" hidden>
-    <button class="tab" type="button" role="tab" data-tab="guide" id="tab-guide">1. คู่มือ</button>
-    <button class="tab" type="button" role="tab" data-tab="practice" id="tab-practice">2. แบบฝึก <span class="tab__n" id="tabPracticeN"></span></button>
-    <button class="tab" type="button" role="tab" data-tab="main" id="tab-main">3. จัดประเภท <span class="tab__n" id="tabMainN"></span></button>
+  <nav class="wrap tabs" id="tabs" aria-label="ขั้นตอน" hidden>
+    <button class="tab" type="button" data-tab="guide" id="tab-guide">1. คู่มือ</button>
+    <button class="tab" type="button" data-tab="practice" id="tab-practice">2. แบบฝึก <span class="tab__n" id="tabPracticeN"></span></button>
+    <button class="tab" type="button" data-tab="main" id="tab-main">3. ชุดจริง <span class="tab__n" id="tabMainN"></span></button>
   </nav>
 </header>
 
@@ -44,57 +46,81 @@
   </section>
 
   <!-- GUIDE -->
-  <section id="guide" class="screen" role="tabpanel" aria-labelledby="tab-guide" hidden>
+  <section id="guide" class="screen" hidden>
     <div class="guide" id="guideBody"></div>
   </section>
 
   <!-- CODING (practice and main share one layout) -->
-  <section id="coding" class="screen" role="tabpanel" hidden>
+  <section id="coding" class="screen" hidden>
     <div class="status" id="setStatus" role="status"></div>
-    <div class="progress">
-      <div class="bar" aria-hidden="true"><i id="bar"></i></div>
-      <div class="peers" id="peers"></div>
-    </div>
-    <div class="navrow">
-      <div class="grid-nav" id="nav" aria-label="ไปที่ข้อ"></div>
-      <label class="check" for="onlyTodo"><input type="checkbox" id="onlyTodo"> ข้ามไปเฉพาะข้อที่ยังไม่จัด</label>
-    </div>
+    <div class="panel card" id="donePanel" hidden></div>
+    <details class="navbox" id="navbox">
+      <summary class="navbox__sum"><span id="navSum"></span></summary>
+      <div class="navbox__in">
+        <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+        <p class="legend small"><span class="key key--todo">12</span> ยังไม่ลง <span class="key key--done">12</span> ลงแล้ว <span class="key key--draft">12</span> มีร่างที่ยังไม่บันทึก <span class="key key--cur">12</span> ข้อที่เปิดอยู่</p>
+        <nav class="grid-nav" id="nav" aria-label="เลือกข้อ"></nav>
+        <div class="navbox__foot"><span class="small" id="leftList"></span><button class="btn btn--ghost btn--sm" type="button" id="nextTodo">ข้อที่ยังไม่ลงถัดไป →</button></div>
+      </div>
+    </details>
+
     <div class="workspace">
-      <article class="reader card" id="reader" aria-labelledby="cid">
-        <div class="reader__meta">
-          <span class="cid" id="cid"></span>
-          <span class="muted pos" id="pos"></span>
-          <a class="btn btn--ghost btn--sm" id="srcLink" href="#" target="_blank" rel="noopener">หน้าโครงการในคลัง สวรส. ↗</a>
-        </div>
-        <div class="text" id="text"></div>
+      <article class="reader card" id="reader">
+        <div class="reader__meta"><span class="pos" id="pos"></span><span class="cid" id="cid"></span></div>
+        <h2 class="title" id="title" tabindex="-1" aria-describedby="pos"></h2>
+        <p class="title-en" id="titleEn" lang="en"></p>
+        <p class="kw" id="kw"></p>
+        <div class="toc" id="toc" hidden></div>
+        <div class="reports" id="reports"></div>
+        <p class="srcline small">บทคัดย่อไม่พอ: <a id="srcLink" href="#" target="_blank" rel="noopener">เปิดหน้าโครงการในคลัง สวรส. ↗</a> แล้วติ๊ก "เปิดอ่านรายงานฉบับเต็ม" ในคำตอบ</p>
       </article>
 
-      <form class="coder card" id="form" autocomplete="off" novalidate>
-        <h2 id="formTitle">คำตอบของคุณ</h2>
+      <form class="coder card" id="form" autocomplete="off" novalidate aria-labelledby="formTitle">
+        <div class="coder__head">
+          <h2 id="formTitle">คำตอบของคุณ</h2>
+          <button class="btn btn--ghost btn--sm" type="button" id="defsAll" aria-pressed="false">แสดงนิยามทั้งหมด</button>
+        </div>
+        <p class="msg warn" id="missingTop" role="alert" hidden></p>
+        <div class="multirule small" id="multiRule" hidden></div>
         <div id="fields"></div>
-        <label class="check" for="opened"><input type="checkbox" id="opened"> ข้อนี้เปิดอ่านรายงานฉบับเต็มประกอบ</label>
-        <label class="field" for="evidence">หลักฐาน <small>วลีไม่เกิน 15 คำจากบทคัดย่อ ใส่เมื่อช่องทฤษฎีวิพากษ์หรือกรอบสิทธิเป็น ใช่ หรือ ก้ำกึ่ง</small>
-          <textarea id="evidence" rows="2"></textarea></label>
-        <label class="field" for="note">หมายเหตุ <small>เส้นแบ่ง เหตุผลสั้น ๆ หรือกฎ 1.1 / 1.2</small>
-          <textarea id="note" rows="2"></textarea></label>
+        <label class="check" for="opened"><input type="checkbox" id="opened"> เปิดอ่านรายงานฉบับเต็มประกอบข้อนี้</label>
+        <div class="field">
+          <label for="evidence">หลักฐาน <small>วลีไม่เกิน 15 คำจากบทคัดย่อ ใส่เมื่อหัวข้อ 4 หรือ 5 เป็น ใช่ หรือ ก้ำกึ่ง</small></label>
+          <textarea id="evidence" rows="2"></textarea>
+          <div class="row"><button class="btn btn--ghost btn--sm" type="button" id="useSel">ใช้ข้อความที่เลือกในบทคัดย่อ</button><span class="msg small" id="evNote"></span></div>
+        </div>
+        <div class="field">
+          <label for="note">หมายเหตุ <small>กรณีก้ำกึ่งเขียน "เส้นแบ่ง" แล้วเหตุผลสั้น ๆ</small></label>
+          <textarea id="note" rows="2"></textarea>
+          <div class="row" id="ruleBtns" hidden><span class="small muted">หัวข้อ 3 เป็นใช่เพราะกฎ:</span><button class="btn btn--ghost btn--sm" type="button" data-rule="1.1">1.1</button><button class="btn btn--ghost btn--sm" type="button" data-rule="1.2">1.2</button></div>
+        </div>
         <div class="actions">
-          <button type="submit" class="btn btn--primary" id="save">บันทึกแล้วไปข้อถัดไป</button>
-          <button type="button" class="btn btn--ghost" id="prev">ก่อนหน้า</button>
-          <button type="button" class="btn btn--ghost" id="next">ถัดไป</button>
+          <button type="submit" class="btn btn--primary" id="save">บันทึก แล้วไปข้อต่อไป</button>
+          <span class="count small" id="count"></span>
+          <span class="actions__nav"><button type="button" class="btn btn--ghost btn--icon" id="prev" aria-label="ข้อก่อนหน้า" aria-keyshortcuts="Alt+ArrowLeft">‹</button><button type="button" class="btn btn--ghost btn--icon" id="next" aria-label="ข้อถัดไป" aria-keyshortcuts="Alt+ArrowRight">›</button></span>
+          <p class="msg" id="saved" role="status" aria-live="polite"></p>
         </div>
-        <p class="msg" id="saved" role="status" aria-live="polite"></p>
-        <div class="finish" id="finishBox" hidden>
-          <p class="small" id="finishText"></p>
-          <button type="button" class="btn btn--ghost" id="finish">ส่งงาน</button>
-          <p class="msg" id="finishMsg" role="status" aria-live="polite"></p>
-        </div>
+      </form>
+    </div>
+    <div class="relogin card" id="relogin" hidden>
+      <p><strong>หมดเวลาเข้าสู่ระบบ</strong> คำตอบในฟอร์มยังอยู่ เข้าสู่ระบบอีกครั้งแล้วกดบันทึก</p>
+      <form class="row" id="reloginForm" novalidate>
+        <label class="field" for="rlPass">รหัสผ่าน<input id="rlPass" type="password" autocomplete="current-password"></label>
+        <button class="btn btn--primary" type="submit">เข้าสู่ระบบ</button>
+        <span class="msg" id="rlMsg" role="status"></span>
       </form>
     </div>
   </section>
 </main>
 
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="mobilebar" id="mobilebar" hidden>
+  <button class="btn btn--ghost" type="button" id="toRead">อ่าน</button>
+  <button class="btn btn--primary" type="button" id="toForm">ตอบ <span id="mbCount"></span></button>
+</div>
+
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=1.0.0"></script>
+<script src="app.js?v=1.2.0"></script>
 </body>
 </html>

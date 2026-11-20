@@ -27,7 +27,7 @@ window.supabase = { createClient: () => {
     from: table,
     rpc: async () => ({ data: [
       { label: 'Percy', is_me: true, coded: codes.filter((c) => !c.practice && c.rules).length, practice_coded: codes.filter((c) => c.practice).length, submitted: subs.length > 0 },
-      { label: 'ผู้จัดคนที่ 2', is_me: false, coded: 37, practice_coded: 5, submitted: false },
+      { label: 'ผู้ลงรหัสคนที่ 2', is_me: false, coded: 37, practice_coded: 5, submitted: false },
     ], error: null }),
     auth: {
       getSession: async () => ({ data: { session: signedIn ? { user: me } : null } }),

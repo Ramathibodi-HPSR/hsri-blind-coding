@@ -115,4 +115,4 @@ grant select, insert on public.submissions to authenticated;
 -- The two coder logins (usernames percy and coder2; the PI creates the accounts and passwords in the dashboard).
 insert into public.coders (email, label) values
   ('percy@hsricode.test', 'Percy'),
-  ('coder2@hsricode.test', 'ผู้จัดคนที่ 2');
+  ('coder2@hsricode.test', 'ผู้ลงรหัสคนที่ 2');
