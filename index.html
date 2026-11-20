@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>HSRI Blind Coding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500&family=Prompt:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="app.css?v=1.0.0">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar__in">
+    <span class="brand">HSRI Blind Coding<span>จัดประเภทโครงการวิจัยที่ สวรส. ให้ทุน แบบไม่เห็นคำตอบของผู้อื่น</span></span>
+    <span class="acct" id="acct" hidden>
+      <span class="acct__name" id="acctName"></span>
+      <button class="btn btn--ghost" type="button" id="logoutBtn">ออกจากระบบ</button>
+    </span>
+  </div>
+  <nav class="wrap tabs" id="tabs" role="tablist" aria-label="หน้าจอ" hidden>
+    <button class="tab" type="button" role="tab" data-tab="guide" id="tab-guide">1. คู่มือ</button>
+    <button class="tab" type="button" role="tab" data-tab="practice" id="tab-practice">2. แบบฝึก <span class="tab__n" id="tabPracticeN"></span></button>
+    <button class="tab" type="button" role="tab" data-tab="main" id="tab-main">3. จัดประเภท <span class="tab__n" id="tabMainN"></span></button>
+  </nav>
+</header>
+
+<main class="wrap" id="main">
+
+  <!-- SIGN-IN -->
+  <section id="login" class="screen">
+    <div class="login">
+      <h1>เข้าสู่ระบบ</h1>
+      <p class="lead">ใช้ชื่อผู้ใช้และรหัสผ่านที่ Percy ส่งให้</p>
+      <form class="card stack" id="loginForm" novalidate>
+        <label class="field" for="lgUser">ชื่อผู้ใช้<input id="lgUser" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
+        <label class="field" for="lgPass">รหัสผ่าน<input id="lgPass" type="password" autocomplete="current-password" required></label>
+        <button class="btn btn--primary" type="submit" id="lgBtn">เข้าสู่ระบบ</button>
+        <p class="msg" id="lgMsg" role="status" aria-live="polite"></p>
+      </form>
+      <p class="small muted">ใช้เครื่องร่วมกับคนอื่น: กด "ออกจากระบบ" ทุกครั้งที่เลิกใช้</p>
+    </div>
+  </section>
+
+  <!-- GUIDE -->
+  <section id="guide" class="screen" role="tabpanel" aria-labelledby="tab-guide" hidden>
+    <div class="guide" id="guideBody"></div>
+  </section>
+
+  <!-- CODING (practice and main share one layout) -->
+  <section id="coding" class="screen" role="tabpanel" hidden>
+    <div class="status" id="setStatus" role="status"></div>
+    <div class="progress">
+      <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+      <div class="peers" id="peers"></div>
+    </div>
+    <div class="navrow">
+      <div class="grid-nav" id="nav" aria-label="ไปที่ข้อ"></div>
+      <label class="check" for="onlyTodo"><input type="checkbox" id="onlyTodo"> ข้ามไปเฉพาะข้อที่ยังไม่จัด</label>
+    </div>
+    <div class="workspace">
+      <article class="reader card" id="reader" aria-labelledby="cid">
+        <div class="reader__meta">
+          <span class="cid" id="cid"></span>
+          <span class="muted pos" id="pos"></span>
+          <a class="btn btn--ghost btn--sm" id="srcLink" href="#" target="_blank" rel="noopener">หน้าโครงการในคลัง สวรส. ↗</a>
+        </div>
+        <div class="text" id="text"></div>
+      </article>
+
+      <form class="coder card" id="form" autocomplete="off" novalidate>
+        <h2 id="formTitle">คำตอบของคุณ</h2>
+        <div id="fields"></div>
+        <label class="check" for="opened"><input type="checkbox" id="opened"> ข้อนี้เปิดอ่านรายงานฉบับเต็มประกอบ</label>
+        <label class="field" for="evidence">หลักฐาน <small>วลีไม่เกิน 15 คำจากบทคัดย่อ ใส่เมื่อช่องทฤษฎีวิพากษ์หรือกรอบสิทธิเป็น ใช่ หรือ ก้ำกึ่ง</small>
+          <textarea id="evidence" rows="2"></textarea></label>
+        <label class="field" for="note">หมายเหตุ <small>เส้นแบ่ง เหตุผลสั้น ๆ หรือกฎ 1.1 / 1.2</small>
+          <textarea id="note" rows="2"></textarea></label>
+        <div class="actions">
+          <button type="submit" class="btn btn--primary" id="save">บันทึกแล้วไปข้อถัดไป</button>
+          <button type="button" class="btn btn--ghost" id="prev">ก่อนหน้า</button>
+          <button type="button" class="btn btn--ghost" id="next">ถัดไป</button>
+        </div>
+        <p class="msg" id="saved" role="status" aria-live="polite"></p>
+        <div class="finish" id="finishBox" hidden>
+          <p class="small" id="finishText"></p>
+          <button type="button" class="btn btn--ghost" id="finish">ส่งงาน</button>
+          <p class="msg" id="finishMsg" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script src="vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js?v=1.0.0"></script>
+</body>
+</html>
