@@ -6,18 +6,20 @@ Web form for the human validation in the HSRI-Eval study (Health Policy and Syst
 - Answers are stored in Supabase (Singapore). `config.js` holds the project URL and the publishable key, which are public by design: row-level security decides what each login may read or write.
 - `data/items.json` and `data/practice.json` hold the project texts (titles, keywords and abstracts as published in the HSRI Knowledge Bank, with a link to each project page). They contain no codes from the model-based survey and no labels saying how an item was sampled.
 - `data/codebook.md` is the codebook shown in the guide.
-- `supabase/migrations/` holds the schema and access rules; `scripts/test-rls.sql` checks them.
+- `supabase/migrations/` holds the schema and access rules; `scripts/test-rls.sql` and `scripts/test-rls-lead.sql` check them.
 
-## Who can see what
+## Roles and who can see what
 
-| Who | Can see |
+Two coders code the sample; the study lead does not code. The lead writes reference answers for the 5 practice items and, once both coders have submitted, settles the fields on which they disagree.
+
+| Who | Can see or do |
 |---|---|
-| A coder | their own answers; the other coder's progress as counts only |
+| A coder | their own answers; the other coder's progress as counts only; the lead's practice key after finishing their own practice; answers lock when they submit |
+| The study lead | the practice key they write (locked once a coder can see it); coders' progress as counts; after both coders submit, only the disputed fields, with the coders shown as A and B assigned per item from a server-side secret, so the same letter is not the same person across items |
 | Someone signed in but not on the coder list | nothing |
 | Anyone not signed in | the project texts and the codebook (public) |
-| The study lead, after both coders submit | all answers, exported for analysis |
 
-Every change to an answer is kept in a history table that no coder can read, so the methods can report how often answers were revised.
+The model-based codes are not in this database or repository. Every change to an answer is kept in a history table that no coder can read. `demo.html` runs the same page against a fake backend for design review; it saves nothing.
 
 ## Sample
 
