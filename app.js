@@ -533,7 +533,9 @@
     if (restore && S.readY != null) window.scrollTo(0, S.readY);
   }
   $('toForm').addEventListener('click', openSheet);
-  WIDE.addEventListener('change', (e) => { if (e.matches) closeSheet(false); }); // a tablet turned to landscape shows the form beside the text
+  // A tablet turned to landscape shows the form beside the text, so the sheet (and the inert page behind it) must close.
+  WIDE.addEventListener('change', (e) => { if (e.matches) closeSheet(false); });
+  window.addEventListener('resize', () => { if (WIDE.matches) closeSheet(false); });
   $('shClose').addEventListener('click', () => closeSheet(true));
   window.addEventListener('beforeunload', (e) => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
   document.addEventListener('keydown', (e) => {
