@@ -216,7 +216,7 @@
         <p>สวัสดี${esc(S.label ? ' ' + S.label : '')} งานนี้คือการอ่านโครงการวิจัยที่ สวรส. ให้ทุน แล้วลงรหัส 7 หัวข้อต่อโครงการ อ่านคู่มือราว 10 นาที ทำแบบฝึก 5 ข้อ แล้วจึงลงชุดจริง ${S.items.length} โครงการ ข้อละราว 2–3 นาที รวมราว 4–6 ชั่วโมง บันทึกทีละข้อ หยุดแล้วกลับมาทำต่อจากเครื่องไหนก็ได้</p>
         <div class="peerbox" id="peerbox"></div></section>
       <section class="rule"><h2>กติกาการปกปิดคำตอบ (blinding)</h2><ul>
-        <li>คำตอบของคุณอ่านได้เฉพาะบัญชีของคุณ ผู้ลงรหัสอีกคนเห็นแค่ว่าคุณลงไปแล้วกี่ข้อ</li>
+        <li>คำตอบของคุณอ่านได้เฉพาะบัญชีของคุณ ผู้ลงรหัสอีกคนเห็นแค่ว่าคุณส่งงานแล้วหรือยัง ไม่เห็นว่าลงไปกี่ข้อ</li>
         <li>ระบบนี้ไม่มีคำตอบของ AI หรือของการสำรวจก่อนหน้า อย่าเปิดผลการสำรวจเดิมระหว่างลงรหัส</li>
         <li>คุยกับผู้ลงรหัสอีกคนได้เฉพาะเรื่องแบบฝึก 5 ข้อ ชุดจริงห้ามคุยรายข้อจนกว่าทั้งสองคนกดส่งงาน</li>
         <li>ลงรหัสจากข้อความโครงการที่หน้าจอแสดง (ชื่อเรื่อง คำสำคัญ บทคัดย่อ) ซึ่งเป็นข้อความชุดเดียวกับที่ใช้ในการสำรวจ ลิงก์ไปหน้าโครงการอยู่ท้ายบทคัดย่อ ใช้เมื่อบทคัดย่อไม่พอ ถ้าเปิดอ่านรายงานฉบับเต็ม ให้ติ๊ก "เปิดอ่านรายงานฉบับเต็มประกอบข้อนี้"</li>
@@ -278,10 +278,14 @@
     return out.join('');
   }
   async function peers() { const { data, error } = await sb.rpc('coding_progress'); return error ? null : data; }
+  // A coder sees only whether the other coder has submitted, never their counts, so nobody paces against anyone; the lead sees counts.
+  const peerLine = (p) => (p.is_me || S.role === 'lead'
+    ? `<span><b>${esc(p.is_me ? p.label + ' (คุณ)' : p.label)}</b> ชุดจริง ${p.coded}/${S.items.length} แบบฝึก ${Math.min(p.practice_coded, PRACTICE_N)}/${PRACTICE_N}${p.submitted ? ' ส่งงานแล้ว' : ''}</span>`
+    : `<span><b>ผู้ลงรหัสอีกคน</b> ${p.submitted ? 'ส่งงานแล้ว' : 'ยังไม่ส่งงาน'}</span>`);
   async function renderPeers() {
     const data = await peers(), box = $('peerbox');
     if (!box || !data) return;
-    box.innerHTML = (S.role === 'lead' ? '<span class="muted">ความคืบหน้าของผู้ลงรหัส:</span>' : '') + data.map((p) => `<span><b>${esc(p.is_me ? p.label + ' (คุณ)' : p.label)}</b> ชุดจริง ${p.coded}/${S.items.length} แบบฝึก ${Math.min(p.practice_coded, PRACTICE_N)}/${PRACTICE_N}${p.submitted ? ' ส่งงานแล้ว' : ''}</span>`).join('');
+    box.innerHTML = (S.role === 'lead' ? '<span class="muted">ความคืบหน้าของผู้ลงรหัส:</span>' : '') + data.map(peerLine).join('');
   }
 
   // ---------- form ----------
@@ -329,7 +333,7 @@
     if (e.type === 'change' && e.target.type === 'radio' && document.body.classList.contains('sheet-open')) {
       const fss = [...document.querySelectorAll('#fields fieldset')], k = fss.indexOf(e.target.closest('fieldset'));
       const nx = fss.slice(k + 1).find((f) => !f.querySelector('input:checked')) || $('opened').closest('label');
-      setTimeout(() => nx.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 120);
+      setTimeout(() => nx.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 120);
     }
     const fs = e.target.closest && e.target.closest('fieldset');
     if (fs && fs.classList.contains('missing') && document.querySelector(`input[name="${fs.id.slice(3)}"]:checked`)) {
@@ -340,7 +344,7 @@
     if (S.noEvidenceOk[it.id] === 'ask') delete S.noEvidenceOk[it.id];
     if (dirty()) {
       setDraft(it.id, readForm());
-      msg($('saved'), S.submitted && S.set === 'main' ? 'แก้หลังส่งงาน ยังไม่บันทึก (ระบบเก็บทุกครั้งที่แก้)' : 'แก้แล้ว ยังไม่บันทึก ร่างเก็บไว้ในเครื่องนี้', 'warn');
+      msg($('saved'), 'ยังไม่บันทึก ร่างเก็บในเครื่องนี้แล้ว');
     } else { setDraft(it.id, null); msg($('saved'), isCoded(S.codes[it.id]) ? 'บันทึกแล้ว' : '', 'ok'); }
     formAids(); renderNav(false);
   }
@@ -433,6 +437,7 @@
     $('pos').textContent = `${S.set === 'practice' ? 'แบบฝึก' : 'ข้อ'} ${i + 1} จาก ${arr.length}`;
     $('cid').textContent = `สัญญา ${it.id}`;
     $('shTitle').textContent = $('pos').textContent;
+    $('shSub').textContent = p.th || p.en;
     $('mbPos').textContent = $('pos').textContent;
     $('title').textContent = p.th || p.en;
     $('titleEn').textContent = p.th ? p.en : '';
@@ -512,9 +517,11 @@
   $('next').addEventListener('click', () => jump(S.idx[S.set] + 1));
   $('nextTodo').addEventListener('click', () => { const j = nextTodoIndex(S.idx[S.set]); if (j >= 0) jump(j); });
   // Phones and tablets: the answer form opens as a sheet over the text and closes back to the reading place.
+  const behindSheet = () => [$('topbar'), $('hub'), $('navbox'), $('reader'), $('mobilebar')];
   function openSheet() {
     S.readY = window.scrollY;
     document.body.classList.add('sheet-open');
+    behindSheet().forEach((el) => { el.inert = true; });
     $('form').scrollTop = 0;
     const first = [...document.querySelectorAll('#fields fieldset')].find((fs) => !fs.querySelector('input:checked'));
     if (first) { first.scrollIntoView({ block: 'start' }); first.querySelector('input').focus({ preventScroll: true }); } else $('save').focus({ preventScroll: true });
@@ -522,6 +529,7 @@
   function closeSheet(restore) {
     if (!document.body.classList.contains('sheet-open')) return;
     document.body.classList.remove('sheet-open');
+    behindSheet().forEach((el) => { el.inert = false; });
     if (restore && S.readY != null) window.scrollTo(0, S.readY);
   }
   $('toForm').addEventListener('click', openSheet);
@@ -673,7 +681,7 @@
     const border = S.items.map((it, i) => [it, i]).filter(([it]) => /เส้นแบ่ง/.test((S.codes[it.id] || {}).note || ''));
     const data = await peers();
     box.innerHTML = `<h2>ลงครบ ${S.items.length} ข้อแล้ว</h2>
-      ${data ? `<div class="peerbox">${data.map((p) => `<span><b>${esc(p.is_me ? p.label + ' (คุณ)' : p.label)}</b> ${p.coded}/${S.items.length}${p.submitted ? ' ส่งงานแล้ว' : ''}</span>`).join('')}</div>` : ''}
+      ${data ? `<div class="peerbox">${data.map(peerLine).join('')}</div>` : ''}
       ${border.length ? `<p class="small">ข้อที่คุณเขียนว่า "เส้นแบ่ง"${S.submitted ? '' : ' ดูอีกครั้งก่อนส่ง'}: ${border.map(([, i]) => `<button class="btn btn--ghost btn--sm" type="button" data-i="${i}">${i + 1}</button>`).join(' ')}</p>` : ''}
       ${S.submitted ? '<p class="msg ok" id="submittedMsg" tabindex="-1">ส่งงานแล้ว คำตอบล็อกแล้ว ขอบคุณครับ</p>'
         : (S.confirmSubmit ? '<div class="row"><span>หลังส่งงาน แก้คำตอบไม่ได้อีก ยืนยันไหม</span><button class="btn btn--primary" type="button" id="submitYes">ยืนยันส่งงาน</button><button class="btn btn--ghost" type="button" id="submitNo">ยกเลิก</button></div>'
@@ -692,64 +700,62 @@
   }
 
 
-  // ---------- progress hub: gentle gamification that rewards progress, steadiness and care, never speed or comparison ----------
+  // ---------- progress hub: gentle gamification that rewards progress and rest, never speed, particular answers or comparison ----------
   const MILESTONES = [10, 25, 50, 75, 100];
-  // "Careful" must not depend on how many items are coded yes, or it would nudge coders towards yes on the rare codes.
-  const careful = () => { const c = S.items.map((it) => S.codes[it.id]).filter(isCoded); return c.length >= 10 && c.every((x) => x.evidence || !(['yes', 'borderline'].includes(x.critical) || ['yes', 'borderline'].includes(x.rights))); };
-  const BADGES = [
-    { id: 'practice', label: 'ฝึกครบ', tip: 'ทำแบบฝึกครบ 5 ข้อ', on: () => practiceDone() },
-    { id: 'first', label: 'ก้าวแรก', tip: 'ลงชุดจริงข้อแรก', on: () => codedIn(S.items) >= 1 },
-    { id: 'careful', label: 'รอบคอบ', tip: 'ลงครบ 10 ข้อ และข้อที่ตอบใช่หรือก้ำกึ่งในหัวข้อ 4 หรือ 5 มีหลักฐานทุกข้อ', on: careful },
-    { id: 'half', label: 'ครึ่งทาง', tip: 'ลงชุดจริงครบครึ่ง', on: () => codedIn(S.items) * 2 >= S.items.length },
-    { id: 'steady', label: 'สม่ำเสมอ', tip: 'ลงรหัส 3 วันติดกัน', on: () => streak() >= 3 },
-    { id: 'finish', label: 'เส้นชัย', tip: 'ส่งงาน', on: () => S.submitted },
-  ];
   const dayKey = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
   const mainRows = () => S.items.map((it) => S.codes[it.id]).filter((c) => isCoded(c) && c.saved_at);
-  function streak() {
-    const days = new Set(mainRows().map((c) => dayKey(c.saved_at)));
-    const d = new Date(); let n = 0;
-    if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
-    while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
-    return n;
-  }
+  const daysWorked = () => new Set(mainRows().map((c) => dayKey(c.saved_at))).size;
   const today = () => { const t = dayKey(new Date()); return mainRows().filter((c) => dayKey(c.saved_at) === t).length; };
-  const goal = () => { const g = recall('goal'); return [10, 20, 30].includes(g) ? g : 20; };
+  // The daily goal is a ceiling ("enough for today"), small by default, so nobody rushes the last items of a long day.
+  const GOALS = [5, 10, 15];
+  const goal = () => { const g = recall('goal'); return GOALS.includes(g) ? g : 10; };
+  // Stops on the path depend only on how far the coder has got, so none can be lost and none depends on an answer.
+  const STOPS = [
+    { label: 'แบบฝึก', tip: 'ทำแบบฝึกครบ 5 ข้อ', on: () => practiceDone() },
+    { label: '25%', tip: 'ลงชุดจริงครบหนึ่งในสี่', on: () => codedIn(S.items) * 4 >= S.items.length },
+    { label: '50%', tip: 'ลงชุดจริงครบครึ่ง', on: () => codedIn(S.items) * 2 >= S.items.length },
+    { label: '75%', tip: 'ลงชุดจริงครบสามในสี่', on: () => codedIn(S.items) * 4 >= S.items.length * 3 },
+    { label: 'ครบ', tip: 'ลงชุดจริงครบทุกข้อ', on: () => codedIn(S.items) === S.items.length },
+    { label: 'ส่งงาน', tip: 'กดส่งงาน', on: () => S.submitted },
+  ];
   function ringHtml(done, total) {
     const C = 2 * Math.PI * 40, pct = Math.round(100 * done / total);
-    return `<div class="ring" role="img" aria-label="ลงแล้ว ${done} จาก ${total} ข้อ (${pct}%)"><svg viewBox="0 0 92 92" aria-hidden="true"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7b5cf0"/><stop offset="1" stop-color="#2f8be4"/></linearGradient></defs><circle class="ring__track" cx="46" cy="46" r="40"/><circle class="ring__fill" cx="46" cy="46" r="40" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - done / total)).toFixed(1)}"/></svg><div class="ring__txt" aria-hidden="true"><div><b>${pct}%</b><br><span>${done}/${total}</span></div></div></div>`;
+    return `<div class="ring" role="img" aria-label="ลงแล้ว ${done} จาก ${total} ข้อ (${pct}%)"><svg viewBox="0 0 92 92" aria-hidden="true"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d4fe8"/><stop offset="1" stop-color="#3a7fe0"/></linearGradient></defs><circle class="ring__track" cx="46" cy="46" r="40"/><circle class="ring__fill" cx="46" cy="46" r="40" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - done / total)).toFixed(1)}"/></svg><div class="ring__txt" aria-hidden="true"><div><b>${pct}%</b><span>${done}/${total}</span></div></div></div>`;
+  }
+  function stepsHtml() {
+    const on = STOPS.map((x) => x.on()), next = on.indexOf(false);
+    return `<ol class="steps" aria-label="เส้นทางของงาน">${STOPS.map((x, k) => `<li class="${on[k] ? 'is-done' : k === next ? 'is-next' : ''}"><i aria-hidden="true">${on[k] ? '✓' : ''}</i><span aria-hidden="true">${esc(x.label)}</span><span class="sr">${esc(x.tip)}${on[k] ? ' ผ่านแล้ว' : ' ยังไม่ถึง'}</span></li>`).join('')}</ol>`;
   }
   function renderHub() {
     const hub = $('hub');
     if (S.role === 'lead' || $('coding').hidden) { hub.hidden = true; return; }
-    const arr = list(), done = codedIn(arr), pct = Math.round(100 * done / arr.length);
+    const arr = list(), done = codedIn(arr);
     if (S.set === 'practice') {
-      hub.innerHTML = ringHtml(done, arr.length) + `<div class="hub__main"><p class="hub__title">แบบฝึก ${done} จาก ${arr.length} ข้อ</p><p class="small muted">${done >= arr.length ? 'ครบแล้ว ชุดจริงเปิดแล้ว เทียบคำตอบกับเฉลยของ Percy ในกล่องด้านบน' : 'ทำครบ 5 ข้อแล้วชุดจริงจะเปิด และจะเห็นเฉลยของ Percy'}</p></div>`;
+      hub.innerHTML = ringHtml(done, arr.length) + `<div class="hub__main"><p class="hub__title">แบบฝึก ${done} จาก ${arr.length} ข้อ</p><p class="small muted">${done >= arr.length ? 'ครบแล้ว ชุดจริงเปิดแล้ว ดูเฉลยของ Percy ในกล่องด้านบนก่อนเริ่ม' : 'ทำครบ 5 ข้อแล้วชุดจริงจะเปิด และจะเห็นเฉลยของ Percy'}</p></div>` + stepsHtml();
       hub.hidden = false; return;
     }
-    const next = MILESTONES.find((m) => pct < m), g = goal(), t = today(), st = streak();
+    const pct = Math.round(100 * done / arr.length), next = MILESTONES.find((m) => pct < m), g = goal(), t = today(), dw = daysWorked();
+    const title = S.submitted ? 'ส่งงานแล้ว ขอบคุณครับ' : next ? `อีก ${Math.max(1, Math.ceil(next * arr.length / 100) - done)} ข้อ ถึง ${next}%` : 'ลงครบทุกข้อแล้ว เหลือกดส่งงาน';
     hub.innerHTML = ringHtml(done, arr.length) + `<div class="hub__main">
-      <p class="hub__title">${next ? `อีก ${Math.max(1, Math.ceil(next * arr.length / 100) - done)} ข้อ ถึง ${next}%` : 'ลงครบทุกข้อแล้ว'}</p>
-      <div class="hub__row"><span class="goal">วันนี้ ${t}/${g} ข้อ <span class="bar" aria-hidden="true"><i style="width:${Math.min(100, 100 * t / g)}%"></i></span></span>
-        <span class="goalpick" role="group" aria-label="ตั้งเป้าวันนี้"><span class="small muted">เป้า</span>${[10, 20, 30].map((n) => `<button type="button" data-goal="${n}" aria-pressed="${n === g}">${n}</button>`).join('')}</span>
-        <span class="chip${st >= 2 ? ' chip--on' : ''}">ลงต่อเนื่อง ${st} วัน</span></div>
-      <div class="badges" aria-label="ตรา">${BADGES.map((b) => { const on = b.on(); return `<span class="badge${on ? ' badge--on' : ''}" title="${esc(b.tip)}"><i aria-hidden="true">${on ? '✓' : ''}</i>${esc(b.label)}<span class="sr">${on ? ' ได้แล้ว' : ' ยังไม่ได้'}</span></span>`; }).join('')}</div></div>`;
+      <p class="hub__title">${title}</p>
+      ${S.submitted ? '' : `<div class="hub__row">${t >= g ? '<span class="goal goal--met">ครบเป้าวันนี้แล้ว ✓ พอแล้วสำหรับวันนี้</span>' : `<span class="goal">วันนี้ ${t}/${g} ข้อ <span class="bar" aria-hidden="true"><i style="width:${100 * t / g}%"></i></span></span>`}
+        <span class="goalpick" role="group" aria-label="เป้าต่อวัน"><span class="muted">เป้าต่อวัน</span>${GOALS.map((n) => `<button type="button" data-goal="${n}" aria-pressed="${n === g}">${n}</button>`).join('')}</span>
+        ${dw >= 2 ? `<span class="chip">ลงรหัสมาแล้ว ${dw} วัน</span>` : ''}</div>`}</div>` + stepsHtml();
     hub.querySelectorAll('[data-goal]').forEach((b) => b.addEventListener('click', () => { store('goal', +b.dataset.goal); renderHub(); }));
     hub.hidden = false;
   }
-  const snapshot = () => ({ pct: Math.round(100 * codedIn(S.items) / S.items.length), today: today(), badges: new Set(BADGES.filter((b) => b.on()).map((b) => b.id)) });
+  const snapshot = () => ({ pct: Math.round(100 * codedIn(S.items) / S.items.length), today: today(), practice: practiceDone() });
   function win(text) { const t = $('toast'); t.classList.add('toast--win'); toast(text); clearTimeout(win.h); win.h = setTimeout(() => t.classList.remove('toast--win'), 5000); }
-  // One celebration per save at most; a 45-minute break reminder, never a speed prompt.
+  // One message per save at most; a 45-minute break reminder, never a speed prompt.
   function celebrate(before) {
     const now = Date.now();
     if (!S.sessionStart || now - (S.lastSave || 0) > 10 * 60000) S.sessionStart = now;
     S.lastSave = now;
     if (S.set === 'main') {
       const pct = Math.round(100 * codedIn(S.items) / S.items.length), m = MILESTONES.find((x) => before.pct < x && pct >= x);
-      if (m) { win(m === 100 ? 'ลงครบทุกข้อแล้ว ดูข้อที่เขียนว่า "เส้นแบ่ง" แล้วกดส่งงาน' : `ครบ ${m}% ของชุดจริงแล้ว`); return; }
-      const g = goal(); if (before.today < g && today() >= g) { win(`ครบเป้าวันนี้ ${g} ข้อแล้ว พักได้`); return; }
-      const nb = BADGES.find((b) => !before.badges.has(b.id) && b.on()); if (nb) { win(`ได้ตรา "${nb.label}"`); return; }
-    } else if (practiceDone() && !before.badges.has('practice')) { win('ได้ตรา "ฝึกครบ" ดูเฉลยด้านบนได้เลย'); return; }
+      if (m) { win(m === 100 ? 'ลงครบทุกข้อแล้ว ดูข้อที่เขียนว่า "เส้นแบ่ง" แล้วกดส่งงาน' : `ผ่าน ${m}% ของชุดจริงแล้ว`); return; }
+      const g = goal(); if (before.today < g && today() >= g) { win(`ครบเป้าวันนี้ ${g} ข้อแล้ว พอแล้วสำหรับวันนี้`); return; }
+    } else if (practiceDone() && !before.practice) { win('แบบฝึกครบแล้ว ชุดจริงเปิดแล้ว'); return; }
     if (now - S.sessionStart > 45 * 60000 && now - (S.lastBreak || 0) > 45 * 60000) { S.lastBreak = now; toast('ลงมา 45 นาทีแล้ว พักสายตาสักครู่ แล้วค่อยลงต่อ'); }
   }
 

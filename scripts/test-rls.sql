@@ -22,7 +22,7 @@ insert into t (label, ok, detail) select 'B cannot read A', count(*) = 0, count(
 insert into public.codes (user_id, contactno, domain) values ('00000000-0000-0000-0000-0000000000a1','63-002','biomedical');
 insert into t (label, ok, detail) select 'B insert claiming A id is stamped as B', bool_and(user_id = '00000000-0000-0000-0000-0000000000a2'), string_agg(user_id::text, ',') from public.codes where contactno = '63-002';
 with u as (update public.codes set domain = 'unclear' where contactno = '63-001' returning 1) insert into t (label, ok, detail) select 'B cannot update A', count(*) = 0, count(*)::text from u;
-insert into t (label, ok, detail) select 'B sees progress of both, counts only', count(*) = 2, string_agg(label || ':' || coded || '/' || practice_coded, ' ') from public.coding_progress();
+insert into t (label, ok, detail) select 'B sees own counts and only whether A submitted', count(*) = 2 and count(coded) = 1 and bool_and(is_me or coded is null), string_agg(label || ':' || coalesce(coded::text, '-') || '/' || coalesce(practice_coded::text, '-'), ' ') from public.coding_progress();
 do $$ begin perform 1 from public.code_history; insert into t (label, ok, detail) values ('history hidden from coders', false, 'readable'); exception when insufficient_privilege then insert into t (label, ok) values ('history hidden from coders', true); end $$;
 insert into public.submissions default values;
 insert into t (label, ok) select 'B submits', count(*) = 1 from public.submissions;

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500&family=Prompt:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=1.4.1">
+<link rel="stylesheet" href="app.css?v=1.5.0">
 <script>try { const t = JSON.parse(localStorage.getItem('hsri-coding-theme')); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
@@ -79,7 +79,7 @@
       </article>
 
       <form class="coder card" id="form" autocomplete="off" novalidate aria-labelledby="formTitle">
-        <div class="sheethead"><b id="shTitle">คำตอบ</b><div class="bar" aria-hidden="true"><i id="shBar"></i></div><button type="button" class="btn btn--ghost btn--sm" id="shClose">กลับไปอ่าน</button></div>
+        <div class="sheethead"><div class="sheethead__t"><b id="shTitle">คำตอบ</b><span id="shSub"></span></div><div class="bar" aria-hidden="true"><i id="shBar"></i></div><button type="button" class="btn btn--ghost btn--sm" id="shClose">กลับไปอ่าน</button></div>
         <div class="coder__head">
           <h2 id="formTitle">คำตอบของคุณ</h2>
           <button class="btn btn--ghost btn--sm" type="button" id="defsAll" aria-pressed="false">แสดงนิยามทั้งหมด</button>
@@ -154,6 +154,6 @@
 
 <script src="scripts/preview-mock.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=1.4.1"></script>
+<script src="app.js?v=1.5.0"></script>
 </body>
 </html>

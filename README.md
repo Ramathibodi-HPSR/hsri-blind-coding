@@ -14,7 +14,7 @@ Two coders code the sample; the study lead does not code. The lead writes refere
 
 | Who | Can see or do |
 |---|---|
-| A coder | their own answers; the other coder's progress as counts only; the lead's practice key after finishing their own practice; answers lock when they submit |
+| A coder | their own answers; whether the other coder has submitted (not how far they have got); the lead's practice key after finishing their own practice; answers lock when they submit |
 | The study lead | the practice key they write (locked once a coder can see it); coders' progress as counts; after both coders submit, only the disputed fields, with the coders shown as A and B assigned per item from a server-side secret, so the same letter is not the same person across items |
 | Someone signed in but not on the coder list | nothing |
 | Anyone not signed in | the project texts and the codebook (public) |

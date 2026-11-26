@@ -54,7 +54,7 @@ window.supabase = { createClient: () => {
       if (fn === 'disagreements') return { data: lead && both ? fakeDisputes() : [], error: null };
       return { data: [
         { label: 'ผู้ลงรหัสคนที่ 1', is_me: !lead, coded: lead ? (both ? 131 : 64) : codes.filter((c) => !c.practice && c.rules).length, practice_coded: lead ? 5 : codes.filter((c) => c.practice).length, submitted: lead ? both : subs.length > 0 },
-        { label: 'ผู้ลงรหัสคนที่ 2', is_me: false, coded: both ? 131 : 37, practice_coded: 5, submitted: both },
+        { label: 'ผู้ลงรหัสคนที่ 2', is_me: false, coded: lead ? (both ? 131 : 37) : null, practice_coded: lead ? 5 : null, submitted: both },
       ], error: null };
     },
     auth: {
