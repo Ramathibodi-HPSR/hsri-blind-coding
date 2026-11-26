@@ -50,6 +50,7 @@ window.supabase = { createClient: () => {
     from: table,
     rpc: async (fn) => {
       if (fn === 'practice_key') return { data: (lead || q.has('key')) && codes.filter((c) => c.practice).length >= 5 ? keyRows() : [], error: null };
+      if (fn === 'key_seen') return { data: q.has('keyseen'), error: null };
       if (fn === 'disagreements') return { data: lead && both ? fakeDisputes() : [], error: null };
       return { data: [
         { label: 'ผู้ลงรหัสคนที่ 1', is_me: !lead, coded: lead ? (both ? 131 : 64) : codes.filter((c) => !c.practice && c.rules).length, practice_coded: lead ? 5 : codes.filter((c) => c.practice).length, submitted: lead ? both : subs.length > 0 },

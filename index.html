@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500&family=Prompt:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=1.3.0">
+<link rel="stylesheet" href="app.css?v=1.3.1">
 <script>try { const t = JSON.parse(localStorage.getItem('hsri-coding-theme')); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
@@ -116,6 +116,7 @@
   <!-- ADJUDICATION (study lead only) -->
   <section id="adjud" class="screen" hidden>
     <div class="status" id="adjStatus" role="status"></div>
+    <div class="panel card" id="adjInfo" hidden></div>
     <details class="navbox" id="adjNavbox" open hidden>
       <summary class="navbox__sum"><span id="adjSum"></span></summary>
       <div class="navbox__in">
@@ -128,8 +129,9 @@
       <form class="coder card" id="adjForm" novalidate aria-labelledby="adjTitle">
         <h2 id="adjTitle">ตัดสินหัวข้อที่สองคนตอบไม่ตรงกัน</h2>
         <p class="small muted">ผู้ลงรหัสแสดงเป็น A และ B ไม่บอกชื่อ ระบบนี้ไม่มีคำตอบของ AI ตัดสินจากข้อความโครงการและ codebook เลือกค่าใดก็ได้ ไม่จำเป็นต้องเป็นค่าของ A หรือ B</p>
-        <div id="adjFields"></div>
         <div class="ab small" id="adjAB"></div>
+        <p class="msg warn" id="adjMissing" role="alert" hidden></p>
+        <div id="adjFields"></div>
         <div class="field"><label for="adjNote">เหตุผลของการตัดสิน <small>สั้น ๆ ใช้กับทุกหัวข้อของข้อนี้</small></label><textarea id="adjNote" rows="2"></textarea></div>
         <div class="actions">
           <button type="submit" class="btn btn--primary" id="adjSave">บันทึกการตัดสิน แล้วไปข้อต่อไป</button>
@@ -149,6 +151,6 @@
 
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=1.3.0"></script>
+<script src="app.js?v=1.3.1"></script>
 </body>
 </html>
