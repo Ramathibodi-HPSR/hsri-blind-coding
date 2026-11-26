@@ -694,11 +694,12 @@
 
   // ---------- progress hub: gentle gamification that rewards progress, steadiness and care, never speed or comparison ----------
   const MILESTONES = [10, 25, 50, 75, 100];
-  const careful = () => { const q = S.items.map((it) => S.codes[it.id]).filter((c) => isCoded(c) && (['yes', 'borderline'].includes(c.critical) || ['yes', 'borderline'].includes(c.rights))); return q.length >= 3 && q.every((c) => c.evidence); };
+  // "Careful" must not depend on how many items are coded yes, or it would nudge coders towards yes on the rare codes.
+  const careful = () => { const c = S.items.map((it) => S.codes[it.id]).filter(isCoded); return c.length >= 10 && c.every((x) => x.evidence || !(['yes', 'borderline'].includes(x.critical) || ['yes', 'borderline'].includes(x.rights))); };
   const BADGES = [
     { id: 'practice', label: 'ฝึกครบ', tip: 'ทำแบบฝึกครบ 5 ข้อ', on: () => practiceDone() },
     { id: 'first', label: 'ก้าวแรก', tip: 'ลงชุดจริงข้อแรก', on: () => codedIn(S.items) >= 1 },
-    { id: 'careful', label: 'รอบคอบ', tip: 'ทุกข้อที่หัวข้อ 4 หรือ 5 เป็นใช่หรือก้ำกึ่ง มีหลักฐาน (อย่างน้อย 3 ข้อ)', on: careful },
+    { id: 'careful', label: 'รอบคอบ', tip: 'ลงครบ 10 ข้อ และข้อที่ตอบใช่หรือก้ำกึ่งในหัวข้อ 4 หรือ 5 มีหลักฐานทุกข้อ', on: careful },
     { id: 'half', label: 'ครึ่งทาง', tip: 'ลงชุดจริงครบครึ่ง', on: () => codedIn(S.items) * 2 >= S.items.length },
     { id: 'steady', label: 'สม่ำเสมอ', tip: 'ลงรหัส 3 วันติดกัน', on: () => streak() >= 3 },
     { id: 'finish', label: 'เส้นชัย', tip: 'ส่งงาน', on: () => S.submitted },
@@ -723,14 +724,14 @@
     if (S.role === 'lead' || $('coding').hidden) { hub.hidden = true; return; }
     const arr = list(), done = codedIn(arr), pct = Math.round(100 * done / arr.length);
     if (S.set === 'practice') {
-      hub.innerHTML = ringHtml(done, arr.length) + `<div class="hub__main"><p class="hub__title">แบบฝึก ${done} จาก ${arr.length} ข้อ</p><p class="small muted">ทำครบแล้วเทียบกับเฉลยของ Percy แล้วชุดจริงจะเปิด</p></div>`;
+      hub.innerHTML = ringHtml(done, arr.length) + `<div class="hub__main"><p class="hub__title">แบบฝึก ${done} จาก ${arr.length} ข้อ</p><p class="small muted">${done >= arr.length ? 'ครบแล้ว ชุดจริงเปิดแล้ว เทียบคำตอบกับเฉลยของ Percy ในกล่องด้านบน' : 'ทำครบ 5 ข้อแล้วชุดจริงจะเปิด และจะเห็นเฉลยของ Percy'}</p></div>`;
       hub.hidden = false; return;
     }
     const next = MILESTONES.find((m) => pct < m), g = goal(), t = today(), st = streak();
     hub.innerHTML = ringHtml(done, arr.length) + `<div class="hub__main">
       <p class="hub__title">${next ? `อีก ${Math.max(1, Math.ceil(next * arr.length / 100) - done)} ข้อ ถึง ${next}%` : 'ลงครบทุกข้อแล้ว'}</p>
       <div class="hub__row"><span class="goal">วันนี้ ${t}/${g} ข้อ <span class="bar" aria-hidden="true"><i style="width:${Math.min(100, 100 * t / g)}%"></i></span></span>
-        <span class="goalpick" role="group" aria-label="ตั้งเป้าวันนี้">${[10, 20, 30].map((n) => `<button type="button" data-goal="${n}" aria-pressed="${n === g}">${n}</button>`).join('')}</span>
+        <span class="goalpick" role="group" aria-label="ตั้งเป้าวันนี้"><span class="small muted">เป้า</span>${[10, 20, 30].map((n) => `<button type="button" data-goal="${n}" aria-pressed="${n === g}">${n}</button>`).join('')}</span>
         <span class="chip${st >= 2 ? ' chip--on' : ''}">ลงต่อเนื่อง ${st} วัน</span></div>
       <div class="badges" aria-label="ตรา">${BADGES.map((b) => { const on = b.on(); return `<span class="badge${on ? ' badge--on' : ''}" title="${esc(b.tip)}"><i aria-hidden="true">${on ? '✓' : ''}</i>${esc(b.label)}<span class="sr">${on ? ' ได้แล้ว' : ' ยังไม่ได้'}</span></span>`; }).join('')}</div></div>`;
     hub.querySelectorAll('[data-goal]').forEach((b) => b.addEventListener('click', () => { store('goal', +b.dataset.goal); renderHub(); }));
