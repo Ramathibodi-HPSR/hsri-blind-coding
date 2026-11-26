@@ -8,13 +8,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500&family=Prompt:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=1.3.1">
+<link rel="stylesheet" href="app.css?v=1.4.0">
 <script>try { const t = JSON.parse(localStorage.getItem('hsri-coding-theme')); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
 <header class="topbar" id="topbar">
   <div class="wrap topbar__in">
-    <span class="brand">HSRI Blind Coding<span class="brand__sub">ลงรหัสโครงการวิจัยที่ สวรส. ให้ทุน แบบปกปิดคำตอบ</span></span>
+    <span class="brand"><span class="brand__mark" aria-hidden="true">HB</span><span class="brand__text">HSRI Blind Coding<span class="brand__sub">ลงรหัสโครงการวิจัยที่ สวรส. ให้ทุน แบบปกปิดคำตอบ</span></span></span>
     <span class="acct" id="acct" hidden>
       <span class="acct__name" id="acctName"></span>
       <button class="btn btn--ghost btn--sm" type="button" id="themeBtn">ธีม: อัตโนมัติ</button>
@@ -34,7 +34,7 @@
   <!-- SIGN-IN -->
   <section id="login" class="screen">
     <div class="login">
-      <h1>เข้าสู่ระบบ</h1>
+      <div class="loginbrand"><span class="brand__mark" aria-hidden="true">HB</span><h1>เข้าสู่ระบบ</h1></div>
       <p class="lead">ใช้ชื่อผู้ใช้และรหัสผ่านที่ Percy ส่งให้</p>
       <form class="card stack" id="loginForm" novalidate>
         <label class="field" for="lgUser">ชื่อผู้ใช้<input id="lgUser" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
@@ -55,6 +55,7 @@
   <section id="coding" class="screen" hidden>
     <div class="status" id="setStatus" role="status"></div>
     <div class="panel card" id="donePanel" hidden></div>
+    <section class="hub card" id="hub" aria-label="ความคืบหน้า" hidden></section>
     <details class="navbox" id="navbox">
       <summary class="navbox__sum"><span id="navSum"></span></summary>
       <div class="navbox__in">
@@ -77,6 +78,7 @@
       </article>
 
       <form class="coder card" id="form" autocomplete="off" novalidate aria-labelledby="formTitle">
+        <div class="sheethead"><b id="shTitle">คำตอบ</b><div class="bar" aria-hidden="true"><i id="shBar"></i></div><button type="button" class="btn btn--ghost btn--sm" id="shClose">กลับไปอ่าน</button></div>
         <div class="coder__head">
           <h2 id="formTitle">คำตอบของคุณ</h2>
           <button class="btn btn--ghost btn--sm" type="button" id="defsAll" aria-pressed="false">แสดงนิยามทั้งหมด</button>
@@ -145,12 +147,12 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <div class="mobilebar" id="mobilebar" hidden>
-  <button class="btn btn--ghost" type="button" id="toRead">อ่าน</button>
+  <span class="small muted" id="mbPos"></span>
   <button class="btn btn--primary" type="button" id="toForm">ตอบ <span id="mbCount"></span></button>
 </div>
 
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=1.3.1"></script>
+<script src="app.js?v=1.4.0"></script>
 </body>
 </html>

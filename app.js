@@ -317,6 +317,7 @@
     const v = readForm(), n = KEYS.filter((k) => v[k]).length;
     $('count').textContent = `${n}/7 หัวข้อ`;
     $('mbCount').textContent = `(${n}/7)`;
+    $('shBar').style.width = (100 * n / 7) + '%';
     const wantsEv = ['yes', 'borderline'].includes(v.critical) || ['yes', 'borderline'].includes(v.rights);
     msg($('evNote'), wantsEv && !v.evidence ? 'หัวข้อ 4 หรือ 5 เป็นใช่หรือก้ำกึ่ง ใส่วลีหลักฐานด้วย' : '', wantsEv && !v.evidence ? 'warn' : '');
     $('ruleBtns').hidden = v.state !== 'yes';
@@ -325,6 +326,11 @@
   $('form').addEventListener('input', onEdit);
   $('form').addEventListener('change', onEdit);
   function onEdit(e) {
+    if (e.type === 'change' && e.target.type === 'radio' && document.body.classList.contains('sheet-open')) {
+      const fss = [...document.querySelectorAll('#fields fieldset')], k = fss.indexOf(e.target.closest('fieldset'));
+      const nx = fss.slice(k + 1).find((f) => !f.querySelector('input:checked')) || $('opened').closest('label');
+      setTimeout(() => nx.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 120);
+    }
     const fs = e.target.closest && e.target.closest('fieldset');
     if (fs && fs.classList.contains('missing') && document.querySelector(`input[name="${fs.id.slice(3)}"]:checked`)) {
       fs.classList.remove('missing'); fs.querySelectorAll('input').forEach((r) => r.removeAttribute('aria-invalid'));
@@ -426,6 +432,8 @@
     S.lastSel = null; S.readY = null;
     $('pos').textContent = `${S.set === 'practice' ? 'แบบฝึก' : 'ข้อ'} ${i + 1} จาก ${arr.length}`;
     $('cid').textContent = `สัญญา ${it.id}`;
+    $('shTitle').textContent = $('pos').textContent;
+    $('mbPos').textContent = $('pos').textContent;
     $('title').textContent = p.th || p.en;
     $('titleEn').textContent = p.th ? p.en : '';
     $('kw').textContent = p.kw ? 'คำสำคัญ: ' + p.kw : '';
@@ -484,6 +492,7 @@
     lb.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => jump(+b.dataset.i)));
     $('nextTodo').disabled = !left.length;
     renderTabs();
+    renderHub();
   }
   // Move to item i; the project title gets focus so screen readers announce the new item.
   function jump(i) {
@@ -502,13 +511,24 @@
   $('prev').addEventListener('click', () => jump(S.idx[S.set] - 1));
   $('next').addEventListener('click', () => jump(S.idx[S.set] + 1));
   $('nextTodo').addEventListener('click', () => { const j = nextTodoIndex(S.idx[S.set]); if (j >= 0) jump(j); });
-  $('toRead').addEventListener('click', () => {
-    if (S.readY != null && Math.abs(window.scrollY - S.readY) > 4) window.scrollTo(0, S.readY);
-    else $('reader').scrollIntoView({ block: 'start' });
-  });
-  $('toForm').addEventListener('click', () => { const f = $('form').getBoundingClientRect().top; if (f > 120) S.readY = window.scrollY; $('form').scrollIntoView({ block: 'start' }); });
+  // Phones and tablets: the answer form opens as a sheet over the text and closes back to the reading place.
+  function openSheet() {
+    S.readY = window.scrollY;
+    document.body.classList.add('sheet-open');
+    $('form').scrollTop = 0;
+    const first = [...document.querySelectorAll('#fields fieldset')].find((fs) => !fs.querySelector('input:checked'));
+    if (first) { first.scrollIntoView({ block: 'start' }); first.querySelector('input').focus({ preventScroll: true }); } else $('save').focus({ preventScroll: true });
+  }
+  function closeSheet(restore) {
+    if (!document.body.classList.contains('sheet-open')) return;
+    document.body.classList.remove('sheet-open');
+    if (restore && S.readY != null) window.scrollTo(0, S.readY);
+  }
+  $('toForm').addEventListener('click', openSheet);
+  $('shClose').addEventListener('click', () => closeSheet(true));
   window.addEventListener('beforeunload', (e) => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('sheet-open')) { closeSheet(true); return; }
     if (!$('adjud').hidden && !$('adjWork').hidden) {
       const typingA = /^(TEXTAREA|INPUT)$/.test(document.activeElement.tagName) && document.activeElement.type !== 'radio';
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); $('adjForm').requestSubmit(); return; }
@@ -549,22 +569,26 @@
       return;
     }
     if (same(v, S.codes[it.id])) { after(i, false); return; }
+    const before = snapshot();
     S.saving = true; $('save').disabled = true; msg($('saved'), 'กำลังบันทึก…');
     const row = { user_id: S.user.id, contactno: it.id, practice: S.set === 'practice', position: i + 1, ...v };
     const { error } = await sb.from('codes').upsert(row, { onConflict: 'user_id,contactno' });
     S.saving = false; $('save').disabled = false;
     if (error) {
       const auth = error.status === 401 || error.code === 'PGRST301' || /jwt|token|auth/i.test(error.message || '');
-      if (auth) { $('relogin').hidden = false; $('relogin').scrollIntoView({ block: 'center' }); $('rlPass').focus(); msg($('saved'), 'หมดเวลาเข้าสู่ระบบ เข้าสู่ระบบอีกครั้งด้านล่าง คำตอบยังอยู่', 'warn'); }
+      if (auth) { closeSheet(false); $('relogin').hidden = false; $('relogin').scrollIntoView({ block: 'center' }); $('rlPass').focus(); msg($('saved'), 'หมดเวลาเข้าสู่ระบบ เข้าสู่ระบบอีกครั้งด้านล่าง คำตอบยังอยู่', 'warn'); }
       else msg($('saved'), 'บันทึกไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วกดบันทึกอีกครั้ง คำตอบในฟอร์มยังอยู่', 'warn');
       return;
     }
+    row.saved_at = new Date().toISOString();
     S.codes[it.id] = row;
     delete S.noEvidenceOk[it.id];
     setDraft(it.id, null);
     after(i, true);
+    celebrate(before);
   });
   function after(i, saved) {
+    closeSheet(false);
     const j = nextTodoIndex(i), arr = list();
     const head = saved ? `บันทึก${S.set === 'practice' ? (S.role === 'lead' ? 'เฉลยข้อ' : 'แบบฝึก') : 'ข้อ'} ${i + 1} แล้ว` : `ข้อ ${i + 1} ไม่มีการแก้`;
     if (j < 0) {
@@ -665,6 +689,67 @@
     const { error } = await sb.from('submissions').insert({ user_id: S.user.id });
     if (error) { msg($('finishMsg'), 'ส่งไม่สำเร็จ ลองอีกครั้ง', 'warn'); return; }
     S.submitted = true; S.confirmSubmit = false; await renderPanel(); renderSetStatus(); renderItem(); if ($('submittedMsg')) $('submittedMsg').focus();
+  }
+
+
+  // ---------- progress hub: gentle gamification that rewards progress, steadiness and care, never speed or comparison ----------
+  const MILESTONES = [10, 25, 50, 75, 100];
+  const careful = () => { const q = S.items.map((it) => S.codes[it.id]).filter((c) => isCoded(c) && (['yes', 'borderline'].includes(c.critical) || ['yes', 'borderline'].includes(c.rights))); return q.length >= 3 && q.every((c) => c.evidence); };
+  const BADGES = [
+    { id: 'practice', label: 'ฝึกครบ', tip: 'ทำแบบฝึกครบ 5 ข้อ', on: () => practiceDone() },
+    { id: 'first', label: 'ก้าวแรก', tip: 'ลงชุดจริงข้อแรก', on: () => codedIn(S.items) >= 1 },
+    { id: 'careful', label: 'รอบคอบ', tip: 'ทุกข้อที่หัวข้อ 4 หรือ 5 เป็นใช่หรือก้ำกึ่ง มีหลักฐาน (อย่างน้อย 3 ข้อ)', on: careful },
+    { id: 'half', label: 'ครึ่งทาง', tip: 'ลงชุดจริงครบครึ่ง', on: () => codedIn(S.items) * 2 >= S.items.length },
+    { id: 'steady', label: 'สม่ำเสมอ', tip: 'ลงรหัส 3 วันติดกัน', on: () => streak() >= 3 },
+    { id: 'finish', label: 'เส้นชัย', tip: 'ส่งงาน', on: () => S.submitted },
+  ];
+  const dayKey = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+  const mainRows = () => S.items.map((it) => S.codes[it.id]).filter((c) => isCoded(c) && c.saved_at);
+  function streak() {
+    const days = new Set(mainRows().map((c) => dayKey(c.saved_at)));
+    const d = new Date(); let n = 0;
+    if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+    while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  const today = () => { const t = dayKey(new Date()); return mainRows().filter((c) => dayKey(c.saved_at) === t).length; };
+  const goal = () => { const g = recall('goal'); return [10, 20, 30].includes(g) ? g : 20; };
+  function ringHtml(done, total) {
+    const C = 2 * Math.PI * 40, pct = Math.round(100 * done / total);
+    return `<div class="ring" role="img" aria-label="ลงแล้ว ${done} จาก ${total} ข้อ (${pct}%)"><svg viewBox="0 0 92 92" aria-hidden="true"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7b5cf0"/><stop offset="1" stop-color="#2f8be4"/></linearGradient></defs><circle class="ring__track" cx="46" cy="46" r="40"/><circle class="ring__fill" cx="46" cy="46" r="40" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - done / total)).toFixed(1)}"/></svg><div class="ring__txt" aria-hidden="true"><div><b>${pct}%</b><br><span>${done}/${total}</span></div></div></div>`;
+  }
+  function renderHub() {
+    const hub = $('hub');
+    if (S.role === 'lead' || $('coding').hidden) { hub.hidden = true; return; }
+    const arr = list(), done = codedIn(arr), pct = Math.round(100 * done / arr.length);
+    if (S.set === 'practice') {
+      hub.innerHTML = ringHtml(done, arr.length) + `<div class="hub__main"><p class="hub__title">แบบฝึก ${done} จาก ${arr.length} ข้อ</p><p class="small muted">ทำครบแล้วเทียบกับเฉลยของ Percy แล้วชุดจริงจะเปิด</p></div>`;
+      hub.hidden = false; return;
+    }
+    const next = MILESTONES.find((m) => pct < m), g = goal(), t = today(), st = streak();
+    hub.innerHTML = ringHtml(done, arr.length) + `<div class="hub__main">
+      <p class="hub__title">${next ? `อีก ${Math.max(1, Math.ceil(next * arr.length / 100) - done)} ข้อ ถึง ${next}%` : 'ลงครบทุกข้อแล้ว'}</p>
+      <div class="hub__row"><span class="goal">วันนี้ ${t}/${g} ข้อ <span class="bar" aria-hidden="true"><i style="width:${Math.min(100, 100 * t / g)}%"></i></span></span>
+        <span class="goalpick" role="group" aria-label="ตั้งเป้าวันนี้">${[10, 20, 30].map((n) => `<button type="button" data-goal="${n}" aria-pressed="${n === g}">${n}</button>`).join('')}</span>
+        <span class="chip${st >= 2 ? ' chip--on' : ''}">ลงต่อเนื่อง ${st} วัน</span></div>
+      <div class="badges" aria-label="ตรา">${BADGES.map((b) => { const on = b.on(); return `<span class="badge${on ? ' badge--on' : ''}" title="${esc(b.tip)}"><i aria-hidden="true">${on ? '✓' : ''}</i>${esc(b.label)}<span class="sr">${on ? ' ได้แล้ว' : ' ยังไม่ได้'}</span></span>`; }).join('')}</div></div>`;
+    hub.querySelectorAll('[data-goal]').forEach((b) => b.addEventListener('click', () => { store('goal', +b.dataset.goal); renderHub(); }));
+    hub.hidden = false;
+  }
+  const snapshot = () => ({ pct: Math.round(100 * codedIn(S.items) / S.items.length), today: today(), badges: new Set(BADGES.filter((b) => b.on()).map((b) => b.id)) });
+  function win(text) { const t = $('toast'); t.classList.add('toast--win'); toast(text); clearTimeout(win.h); win.h = setTimeout(() => t.classList.remove('toast--win'), 5000); }
+  // One celebration per save at most; a 45-minute break reminder, never a speed prompt.
+  function celebrate(before) {
+    const now = Date.now();
+    if (!S.sessionStart || now - (S.lastSave || 0) > 10 * 60000) S.sessionStart = now;
+    S.lastSave = now;
+    if (S.set === 'main') {
+      const pct = Math.round(100 * codedIn(S.items) / S.items.length), m = MILESTONES.find((x) => before.pct < x && pct >= x);
+      if (m) { win(m === 100 ? 'ลงครบทุกข้อแล้ว ดูข้อที่เขียนว่า "เส้นแบ่ง" แล้วกดส่งงาน' : `ครบ ${m}% ของชุดจริงแล้ว`); return; }
+      const g = goal(); if (before.today < g && today() >= g) { win(`ครบเป้าวันนี้ ${g} ข้อแล้ว พักได้`); return; }
+      const nb = BADGES.find((b) => !before.badges.has(b.id) && b.on()); if (nb) { win(`ได้ตรา "${nb.label}"`); return; }
+    } else if (practiceDone() && !before.badges.has('practice')) { win('ได้ตรา "ฝึกครบ" ดูเฉลยด้านบนได้เลย'); return; }
+    if (now - S.sessionStart > 45 * 60000 && now - (S.lastBreak || 0) > 45 * 60000) { S.lastBreak = now; toast('ลงมา 45 นาทีแล้ว พักสายตาสักครู่ แล้วค่อยลงต่อ'); }
   }
 
   // ---------- adjudication (study lead only) ----------
