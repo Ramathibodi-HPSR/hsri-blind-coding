@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500&family=Prompt:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=1.5.0">
+<link rel="stylesheet" href="app.css?v=1.5.1">
 <script>try { const t = JSON.parse(localStorage.getItem('hsri-coding-theme')); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
@@ -136,7 +136,7 @@
         <div id="adjFields"></div>
         <div class="field"><label for="adjNote">เหตุผลของการตัดสิน <small>สั้น ๆ ใช้กับทุกหัวข้อของข้อนี้</small></label><textarea id="adjNote" rows="2"></textarea></div>
         <div class="actions">
-          <button type="submit" class="btn btn--primary" id="adjSave">บันทึกการตัดสิน แล้วไปข้อต่อไป</button>
+          <button type="submit" class="btn btn--primary" id="adjSave">บันทึก แล้วไปข้อต่อไป</button>
           <span class="actions__nav"><button type="button" class="btn btn--ghost btn--icon" id="adjPrev" aria-label="ข้อก่อนหน้า">‹</button><button type="button" class="btn btn--ghost btn--icon" id="adjNext" aria-label="ข้อถัดไป">›</button></span>
           <p class="msg" id="adjMsg" role="status" aria-live="polite"></p>
         </div>
@@ -153,6 +153,6 @@
 
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=1.5.0"></script>
+<script src="app.js?v=1.5.1"></script>
 </body>
 </html>

@@ -286,10 +286,11 @@ fieldset.missing .need { display: inline; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: .875rem; color: var(--ink-2); }
 .goal { font-size: .875rem; }
 .goal--met { color: var(--accent); font-weight: 500; }
-.goalpick { display: inline-flex; align-items: center; gap: 4px; font-size: .875rem; }
+.goalpick { display: inline-flex; align-items: center; gap: 12px; font-size: .875rem; }
 .goalpick .muted { margin-right: 2px; }
-.goalpick button { font: 500 .875rem var(--font-ui); padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2); cursor: pointer; min-height: 32px; min-width: 36px; }
-.goalpick button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.goalpick button { position: relative; font: 500 .875rem var(--font-ui); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2); cursor: pointer; min-height: 32px; min-width: 32px; }
+.goalpick button::after { content: ""; position: absolute; inset: -6px; } /* 44px hit area around a 32px pill */
+.goalpick button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .steps { grid-column: 1 / -1; list-style: none; margin: 2px 0 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); }
 .steps li { position: relative; display: grid; justify-items: center; gap: 4px; font-size: .8125rem; color: var(--muted); text-align: center; }
 .steps li::before { content: ""; position: absolute; top: 11px; right: 50%; width: 100%; height: 2px; background: var(--line); }
@@ -301,6 +302,7 @@ fieldset.missing .need { display: inline; }
 .steps li.is-next i { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 .steps li.is-done, .steps li.is-next { color: var(--ink); }
 .ring__txt div { display: grid; }
+@media (min-width: 600px) { .steps { grid-column: 2; max-width: 520px; } }
 @media (max-width: 599px) {
   .hub { grid-template-columns: 64px 1fr; gap: 10px 12px; padding: 14px; }
   .ring { width: 64px; height: 64px; }
@@ -347,9 +349,10 @@ fieldset.missing .need { display: inline; }
   .tab { padding: 12px 12px 9px; }
   .def summary { padding-block: 11px; }
   label.check { min-height: 44px; display: flex; align-items: center; }
-  .goalpick button { min-height: 44px; min-width: 44px; }
+  .navbox__sum { padding: 10px 0; }
+  .opt > input + span { min-height: 48px; font-size: 1rem; }
   #adjForm .actions { bottom: 0; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
   .toast { top: auto; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
 }
-.actions .msg:empty { display: none; }
+.actions .msg:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); } /* hidden but still a live region */
 .opt > input + span { line-height: 1.45; }

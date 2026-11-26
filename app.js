@@ -333,7 +333,7 @@
     if (e.type === 'change' && e.target.type === 'radio' && document.body.classList.contains('sheet-open')) {
       const fss = [...document.querySelectorAll('#fields fieldset')], k = fss.indexOf(e.target.closest('fieldset'));
       const nx = fss.slice(k + 1).find((f) => !f.querySelector('input:checked')) || $('opened').closest('label');
-      setTimeout(() => nx.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 120);
+      setTimeout(() => nx.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 300);
     }
     const fs = e.target.closest && e.target.closest('fieldset');
     if (fs && fs.classList.contains('missing') && document.querySelector(`input[name="${fs.id.slice(3)}"]:checked`)) {
@@ -517,7 +517,7 @@
   $('next').addEventListener('click', () => jump(S.idx[S.set] + 1));
   $('nextTodo').addEventListener('click', () => { const j = nextTodoIndex(S.idx[S.set]); if (j >= 0) jump(j); });
   // Phones and tablets: the answer form opens as a sheet over the text and closes back to the reading place.
-  const behindSheet = () => [$('topbar'), $('hub'), $('navbox'), $('reader'), $('mobilebar')];
+  const behindSheet = () => [$('topbar'), $('mobilebar'), $('reader'), ...[...$('coding').children].filter((el) => !el.classList.contains('workspace'))];
   function openSheet() {
     S.readY = window.scrollY;
     document.body.classList.add('sheet-open');
@@ -533,6 +533,7 @@
     if (restore && S.readY != null) window.scrollTo(0, S.readY);
   }
   $('toForm').addEventListener('click', openSheet);
+  WIDE.addEventListener('change', (e) => { if (e.matches) closeSheet(false); }); // a tablet turned to landscape shows the form beside the text
   $('shClose').addEventListener('click', () => closeSheet(true));
   window.addEventListener('beforeunload', (e) => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
   document.addEventListener('keydown', (e) => {
@@ -735,10 +736,11 @@
       hub.hidden = false; return;
     }
     const pct = Math.round(100 * done / arr.length), next = MILESTONES.find((m) => pct < m), g = goal(), t = today(), dw = daysWorked();
-    const title = S.submitted ? 'ส่งงานแล้ว ขอบคุณครับ' : next ? `อีก ${Math.max(1, Math.ceil(next * arr.length / 100) - done)} ข้อ ถึง ${next}%` : 'ลงครบทุกข้อแล้ว เหลือกดส่งงาน';
+    const toNext = next ? `อีก ${Math.max(1, Math.ceil(next * arr.length / 100) - done)} ข้อ ถึง ${next}%` : '';
+    const title = S.submitted ? 'ส่งงานแล้ว ขอบคุณครับ' : !next ? 'ลงครบทุกข้อแล้ว เหลือกดส่งงาน' : t >= g ? 'วันนี้พอแล้ว' : toNext;
     hub.innerHTML = ringHtml(done, arr.length) + `<div class="hub__main">
-      <p class="hub__title">${title}</p>
-      ${S.submitted ? '' : `<div class="hub__row">${t >= g ? '<span class="goal goal--met">ครบเป้าวันนี้แล้ว ✓ พอแล้วสำหรับวันนี้</span>' : `<span class="goal">วันนี้ ${t}/${g} ข้อ <span class="bar" aria-hidden="true"><i style="width:${100 * t / g}%"></i></span></span>`}
+      <p class="hub__title">${title}</p>${!S.submitted && next && t >= g ? `<p class="small muted">${toNext}</p>` : ''}
+      ${S.submitted ? '' : `<div class="hub__row">${t >= g ? '<span class="goal goal--met">ครบเป้าวันนี้แล้ว ✓</span>' : `<span class="goal">วันนี้ ${t}/${g} ข้อ <span class="bar" aria-hidden="true"><i style="width:${100 * t / g}%"></i></span></span>`}
         <span class="goalpick" role="group" aria-label="เป้าต่อวัน"><span class="muted">เป้าต่อวัน</span>${GOALS.map((n) => `<button type="button" data-goal="${n}" aria-pressed="${n === g}">${n}</button>`).join('')}</span>
         ${dw >= 2 ? `<span class="chip">ลงรหัสมาแล้ว ${dw} วัน</span>` : ''}</div>`}</div>` + stepsHtml();
     hub.querySelectorAll('[data-goal]').forEach((b) => b.addEventListener('click', () => { store('goal', +b.dataset.goal); renderHub(); }));
