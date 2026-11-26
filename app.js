@@ -50,7 +50,7 @@
   const KEYS = FIELDS.map((f) => f.key);
   const LABEL = Object.fromEntries(FIELDS.flatMap((f) => f.opts.map(([v, l]) => [f.key + ':' + v, l])));
 
-  const S = { items: [], practice: [], codebook: '', user: null, label: '', codes: {}, submitted: false, tab: 'guide', set: 'practice',
+  const S = { items: [], practice: [], codebook: '', user: null, label: '', role: 'coder', codes: {}, submitted: false, tab: 'guide', set: 'practice',
     idx: { practice: 0, main: 0 }, saving: false, noEvidenceOk: {}, confirmSubmit: false, lastSel: null, readY: null, allDoneShown: {} };
   const list = () => (S.set === 'practice' ? S.practice : S.items);
   const cur = () => list()[S.idx[S.set]];
@@ -135,7 +135,7 @@
     const session = data && data.session;
     if (!session) { show('login'); return; }
     S.user = session.user;
-    const who = await sb.from('coders').select('label').maybeSingle();
+    const who = await sb.from('coders').select('label, role').maybeSingle();
     if (who.error || !who.data) {
       const email = session.user.email;
       await sb.auth.signOut();
@@ -145,7 +145,11 @@
       return;
     }
     S.label = who.data.label;
-    $('acctName').textContent = S.label;
+    S.role = who.data.role === 'lead' ? 'lead' : 'coder';
+    $('acctName').textContent = S.label + (S.role === 'lead' ? ' (ผู้ตัดสิน)' : '');
+    $('tab-main').hidden = S.role === 'lead';
+    $('tab-adjud').hidden = S.role !== 'lead';
+    $('tab-practice').firstChild.textContent = S.role === 'lead' ? '2. เฉลยแบบฝึก ' : '2. แบบฝึก ';
     $('acct').hidden = false; $('tabs').hidden = false;
     const [codes, sub] = await Promise.all([sb.from('codes').select('*'), sb.from('submissions').select('user_id')]);
     S.codes = {};
@@ -157,21 +161,25 @@
     syncHead();
     renderGuide();
     if (codes.error) { go('guide'); guideWarn('โหลดคำตอบที่บันทึกไว้ไม่ได้ ตรวจอินเทอร์เน็ตแล้วเปิดหน้านี้ใหม่'); return; }
+    if (S.role === 'lead') { go(practiceDone() ? 'adjud' : 'guide'); return; }
     go(!codedIn(S.practice) && !codedIn(S.items) ? 'guide' : (practiceDone() ? 'main' : 'practice'));
   }
   const clampIdx = (v, n) => (Number.isInteger(v) && v >= 0 && v < n ? v : 0);
 
   // ---------- steps ----------
   function show(id) {
-    ['login', 'guide', 'coding'].forEach((s) => { $(s).hidden = s !== id; });
+    ['login', 'guide', 'coding', 'adjud'].forEach((s) => { $(s).hidden = s !== id; });
     $('mobilebar').hidden = id !== 'coding';
   }
   function go(tab) {
+    if (tab === 'main' && S.role === 'lead') tab = 'adjud';
+    if (tab === 'adjud' && S.role !== 'lead') tab = 'main';
     if (tab === 'main' && !practiceDone()) { toast('ชุดจริงยังล็อก ทำแบบฝึกให้ครบ 5 ข้อก่อน'); return; }
     S.tab = tab;
     renderTabs();
     window.scrollTo(0, 0);
     if (tab === 'guide') { renderPeers(); show('guide'); return; }
+    if (tab === 'adjud') { renderAdjudScreen(); return; }
     S.set = tab;
     S.confirmSubmit = false;
     show('coding');
@@ -186,6 +194,7 @@
     $('tab-main').setAttribute('aria-disabled', String(locked));
     $('tabPracticeN').textContent = `${codedIn(S.practice)}/${S.practice.length}`;
     $('tabMainN').textContent = locked ? '(ล็อก)' : `${codedIn(S.items)}/${S.items.length}`;
+    $('tabAdjN').textContent = A.ready ? `${A.items.filter(adjDone).length}/${A.items.length}` : '';
   }
 
   // ---------- guide ----------
@@ -196,12 +205,18 @@
       <section><h1>คู่มือก่อนเริ่ม</h1>
         <p>สวัสดี${esc(S.label ? ' ' + S.label : '')} งานนี้คือการอ่านโครงการวิจัยที่ สวรส. ให้ทุน แล้วลงรหัส 7 หัวข้อต่อโครงการ อ่านคู่มือราว 10 นาที ทำแบบฝึก 5 ข้อ แล้วจึงลงชุดจริง ${S.items.length} โครงการ ข้อละราว 2–3 นาที รวมราว 4–6 ชั่วโมง บันทึกทีละข้อ หยุดแล้วกลับมาทำต่อจากเครื่องไหนก็ได้</p>
         <div class="peerbox" id="peerbox"></div></section>
+      ${S.role === 'lead' ? `<section class="rule"><h2>สำหรับ Percy (ผู้ตัดสิน)</h2><ol>
+        <li>ทำเฉลยแบบฝึก 5 ข้อในแท็บ "2. เฉลยแบบฝึก" ผู้ลงรหัสจะเห็นเฉลยหลังทำแบบฝึกของตัวเองครบ</li>
+        <li>Percy ไม่ลงรหัสชุดจริง รอให้ผู้ลงรหัสทั้งสองคนส่งงาน</li>
+        <li>แท็บ "3. ตัดสิน" แสดงเฉพาะหัวข้อที่สองคนตอบไม่ตรงกัน ผู้ลงรหัสแสดงเป็น A และ B ระหว่างตัดสินไม่เปิดผลการสำรวจเดิมหรือคำตอบของ AI</li>
+      </ol></section>` : ''}
       <section class="rule"><h2>กติกาการปกปิดคำตอบ (blinding)</h2><ul>
         <li>คำตอบของคุณอ่านได้เฉพาะบัญชีของคุณ ผู้ลงรหัสอีกคนเห็นแค่ว่าคุณลงไปแล้วกี่ข้อ</li>
         <li>ระบบนี้ไม่มีคำตอบของ AI หรือของการสำรวจก่อนหน้า อย่าเปิดผลการสำรวจเดิมระหว่างลงรหัส</li>
         <li>คุยกับผู้ลงรหัสอีกคนได้เฉพาะเรื่องแบบฝึก 5 ข้อ ชุดจริงห้ามคุยรายข้อจนกว่าทั้งสองคนกดส่งงาน</li>
         <li>ลงรหัสจากข้อความโครงการที่หน้าจอแสดง (ชื่อเรื่อง คำสำคัญ บทคัดย่อ) ซึ่งเป็นข้อความชุดเดียวกับที่ใช้ในการสำรวจ ลิงก์ไปหน้าโครงการอยู่ท้ายบทคัดย่อ ใช้เมื่อบทคัดย่อไม่พอ ถ้าเปิดอ่านรายงานฉบับเต็ม ให้ติ๊ก "เปิดอ่านรายงานฉบับเต็มประกอบข้อนี้"</li>
         <li>ลำดับโครงการสุ่มไว้แล้ว ไม่ได้เรียงตามปีหรือหัวข้อ</li>
+        <li>Percy ไม่ได้ลงรหัส ทำหน้าที่ทำเฉลยแบบฝึก และตัดสินหัวข้อที่สองคนตอบไม่ตรงกันหลังทั้งสองคนส่งงาน โดยไม่เห็นคำตอบของ AI</li>
       </ul></section>
       <section><h2>โครงการที่มีหลายรายงาน (ชุดโครงการ)</h2><ul>
         <li>ลงรหัสทั้งชุดเป็นข้อเดียว หน้าจอแบ่งรายงานเป็นช่วง มีปุ่มกระโดดไปแต่ละรายงานด้านบน</li>
@@ -219,7 +234,7 @@
         <li>หมายเหตุ: กรณีก้ำกึ่งเขียน "เส้นแบ่ง" แล้วเหตุผลสั้น ๆ ถ้าลงหัวข้อ 3 เป็นใช่เพราะกฎ 1.1 หรือ 1.2 กดปุ่มเลขกฎใต้หมายเหตุ</li>
       </ul></section>
       <section><h2>ขั้นตอน</h2><ol>
-        <li>แบบฝึก 5 ข้อ ทำแล้วนัดคุยกับผู้ลงรหัสอีกคนเรื่องข้อที่ตอบต่างกัน แบบฝึกไม่นับในผล</li>
+        <li>แบบฝึก 5 ข้อ ทำครบแล้วเห็นเฉลยของ Percy เทียบกับคำตอบของคุณ แล้วนัดคุยกับผู้ลงรหัสอีกคนและ Percy เรื่องข้อที่ต่างกัน แบบฝึกไม่นับในผล</li>
         <li>ชุดจริง ${S.items.length} ข้อ ข้อที่ยังไม่ลง กดเลขข้อในแถบ "ข้อทั้งหมด" เพื่อกลับไป</li>
         <li>ครบแล้วกด "ส่งงาน" เพื่อบอก Percy ว่าคุณลงเสร็จ หลังส่งยังแก้ได้ ระบบเก็บทุกครั้งที่แก้</li>
       </ol></section>
@@ -228,11 +243,11 @@
         <li>Alt+← และ Alt+→ (Mac: Option) ข้อก่อนหน้าและข้อถัดไป เมื่อไม่ได้พิมพ์ในช่องข้อความ</li>
         <li>คำตอบที่ยังไม่บันทึกเก็บเป็นร่างในเครื่องนี้ กลับมาที่ข้อเดิมจะเห็นร่างนั้น</li>
       </ul></section>
-      <div class="start"><button class="btn btn--primary" type="button" id="startBtn">${practiceDone() ? 'ไปที่ชุดจริง' : 'เริ่มแบบฝึก'}</button><span class="small muted">มีคำถาม ถาม Percy</span></div>
+      <div class="start"><button class="btn btn--primary" type="button" id="startBtn">${S.role === 'lead' ? (practiceDone() ? 'ไปที่หน้าตัดสิน' : 'ทำเฉลยแบบฝึก') : (practiceDone() ? 'ไปที่ชุดจริง' : 'เริ่มแบบฝึก')}</button><span class="small muted">มีคำถาม ถาม Percy</span></div>
       <details><summary>Codebook ฉบับเต็ม (ภาษาไทย)</summary>
         <p class="cbnote">ฉบับเดียวกับที่ใช้ในการสำรวจเดิม อ่านส่วน "การตัดสินของ Percy 12 พ.ย. 2569" ท้ายเอกสารก่อน ส่วนนั้นแทนข้อความก่อนหน้าที่ขัดกัน เช่น principal–agent ลงไม่ใช่ (ไม่ใช่ก้ำกึ่ง) และรูปแบบบริการใน รพ.รัฐ รพ.สต. หรือเครือข่ายอำเภอลงใช่ตามกฎ 1.1 ช่อง named_theory, contactno และ coder ในตารางไม่ใช้ในชุดนี้</p>
         <div class="cb-scroll"><div class="cb" id="cbFull"></div></div></details>`;
-    $('startBtn').addEventListener('click', () => go(practiceDone() ? 'main' : 'practice'));
+    $('startBtn').addEventListener('click', () => go(practiceDone() ? (S.role === 'lead' ? 'adjud' : 'main') : 'practice'));
     $('cbFull').innerHTML = renderMarkdown(S.codebook);
   }
   function inline(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/&lt;br&gt;/g, '<br>'); }
@@ -261,7 +276,7 @@
   async function renderPeers() {
     const data = await peers(), box = $('peerbox');
     if (!box || !data) return;
-    box.innerHTML = data.map((p) => `<span><b>${esc(p.is_me ? p.label + ' (คุณ)' : p.label)}</b> ชุดจริง ${p.coded}/${S.items.length} แบบฝึก ${Math.min(p.practice_coded, PRACTICE_N)}/${PRACTICE_N}${p.submitted ? ' ส่งงานแล้ว' : ''}</span>`).join('');
+    box.innerHTML = (S.role === 'lead' ? '<span class="muted">ความคืบหน้าของผู้ลงรหัส:</span>' : '') + data.map((p) => `<span><b>${esc(p.is_me ? p.label + ' (คุณ)' : p.label)}</b> ชุดจริง ${p.coded}/${S.items.length} แบบฝึก ${Math.min(p.practice_coded, PRACTICE_N)}/${PRACTICE_N}${p.submitted ? ' ส่งงานแล้ว' : ''}</span>`).join('');
   }
 
   // ---------- form ----------
@@ -420,7 +435,7 @@
     $('srcLink').href = it.url;
     $('multiRule').hidden = !multi;
     $('multiRule').innerHTML = multi ? 'ชุดโครงการ: ลงทั้งชุดเป็นข้อเดียว<ul><li>หัวข้อ 4 และ 5 ใช้ค่าสูงสุดในบรรดารายงาน และบอกเลขรายงานในหลักฐาน</li><li>หัวข้อ 2 ใช้แนวทางของรายงานส่วนใหญ่</li><li>หัวข้อ 3 ใช่ ถ้ารายงานใดเป็นใช่</li></ul>' : '';
-    $('formTitle').textContent = S.set === 'practice' ? 'คำตอบแบบฝึก (ไม่นับในผล)' : 'คำตอบของคุณ';
+    $('formTitle').textContent = S.set === 'practice' ? (S.role === 'lead' ? 'เฉลยแบบฝึก (ผู้ลงรหัสเห็นหลังทำแบบฝึกของตัวเองครบ)' : 'คำตอบแบบฝึก (ไม่นับในผล)') : 'คำตอบของคุณ';
     const draft = getDraft(it.id), stored = S.codes[it.id];
     const useDraft = draft && !same(draft, stored);
     fillForm(useDraft ? draft : stored);
@@ -556,10 +571,12 @@
   // ---------- status, completion panels, submission ----------
   function status(text, warn) { $('setStatus').textContent = text; $('setStatus').className = 'status' + (warn ? ' warn' : ''); }
   function renderSetStatus() {
-    if (S.set === 'practice') {
+    if (S.set === 'practice' && S.role === 'lead') {
+      status(practiceDone() ? 'เฉลยครบ 5 ข้อแล้ว ผู้ลงรหัสจะเห็นหลังทำแบบฝึกของตัวเองครบ แก้ได้จนกว่าผู้ลงรหัสจะเริ่มเห็น' : 'เฉลยแบบฝึก 5 ข้อ ลงแบบเดียวกับผู้ลงรหัส ใส่เหตุผลในหมายเหตุเพื่อใช้คุยตอนฝึก');
+    } else if (S.set === 'practice') {
       status(practiceDone()
-        ? 'แบบฝึกครบแล้ว ก่อนเริ่มชุดจริง นัดคุยกับผู้ลงรหัสอีกคนเรื่องข้อที่ตอบต่างกัน'
-        : 'แบบฝึก 5 ข้อ ไม่นับในผล ลงครบแล้วชุดจริงจะเปิด');
+        ? 'แบบฝึกครบแล้ว ดูเฉลยของ Percy ด้านบน แล้วนัดคุยเรื่องข้อที่ตอบต่างกันก่อนเริ่มชุดจริง'
+        : 'แบบฝึก 5 ข้อ ไม่นับในผล ลงครบแล้วจะเห็นเฉลยของ Percy และชุดจริงจะเปิด');
     } else {
       status(S.submitted ? 'คุณส่งงานแล้ว ยังแก้ได้ ระบบเก็บทุกครั้งที่แก้แยกไว้' : 'ชุดจริง คำตอบของคุณอ่านได้เฉพาะบัญชีของคุณ อย่าคุยรายข้อกับผู้ลงรหัสอีกคนจนกว่าทั้งสองคนส่งงาน');
     }
@@ -568,12 +585,32 @@
     const box = $('donePanel');
     if (S.set === 'practice') {
       if (!practiceDone()) { box.hidden = true; return; }
-      const rows = S.practice.map((it, i) => { const c = S.codes[it.id] || {}; return `<tr><td>${i + 1}</td><td class="mono">${esc(it.id)}</td>${FIELDS.map((f) => `<td>${esc(LABEL[f.key + ':' + c[f.key]] || '')}</td>`).join('')}<td>${esc(c.evidence || '')}</td><td>${esc(c.note || '')}</td></tr>`; }).join('');
+      const cells = (c, ref) => FIELDS.map((f) => { const v = (c || {})[f.key], d = ref && v !== (ref || {})[f.key]; return `<td${d ? ' class="diff"' : ''}>${esc(LABEL[f.key + ':' + v] || '')}</td>`; }).join('');
+      const head = `<tr><th>ข้อ</th><th>สัญญา</th><th></th>${FIELDS.map((f, n) => `<th>${n + 1}. ${esc(f.label)}</th>`).join('')}<th>หลักฐาน</th><th>หมายเหตุ</th></tr>`;
+      if (S.role === 'lead') {
+        const rows = S.practice.map((it, i) => { const c = S.codes[it.id] || {}; return `<tr><td>${i + 1}</td><td class="mono">${esc(it.id)}</td><td>เฉลย</td>${cells(c)}<td>${esc(c.evidence || '')}</td><td>${esc(c.note || '')}</td></tr>`; }).join('');
+        box.innerHTML = `<h2>เฉลยครบ 5 ข้อแล้ว</h2><p class="small">ผู้ลงรหัสจะเห็นตารางนี้หลังทำแบบฝึกของตัวเองครบ ใช้คุยกันก่อนเริ่มชุดจริง</p>
+          <div class="scroll"><table>${head}${rows}</table></div>
+          <div class="row"><button class="btn btn--primary" type="button" id="toAdj">ไปที่หน้าตัดสิน</button></div>`;
+        box.hidden = false;
+        $('toAdj').addEventListener('click', () => go('adjud'));
+        return;
+      }
+      const kres = await sb.rpc('practice_key');
+      const key = Object.fromEntries(((kres && kres.data) || []).map((r) => [r.contactno, r]));
+      const hasKey = Object.keys(key).length > 0;
+      const rows = S.practice.map((it, i) => {
+        const c = S.codes[it.id] || {}, k = key[it.id];
+        return `<tr><td rowspan="${k ? 2 : 1}">${i + 1}</td><td class="mono" rowspan="${k ? 2 : 1}">${esc(it.id)}</td><td>คุณ</td>${cells(c, k)}<td>${esc(c.evidence || '')}</td><td>${esc(c.note || '')}</td></tr>`
+          + (k ? `<tr class="key"><td>เฉลย</td>${cells(k, c)}<td>${esc(k.evidence || '')}</td><td>${esc(k.note || '')}</td></tr>` : '');
+      }).join('');
+      const nDiff = hasKey ? S.practice.reduce((n, it) => n + (key[it.id] ? FIELDS.filter((f) => (S.codes[it.id] || {})[f.key] !== key[it.id][f.key]).length : 0), 0) : 0;
       const firstView = !recall('practice-panel-seen');
       box.innerHTML = `<h2>แบบฝึกครบ 5 ข้อแล้ว</h2>
-        <details${firstView ? ' open' : ''}><summary class="small">ตารางคำตอบแบบฝึกของคุณ ใช้คุยกับผู้ลงรหัสอีกคนเรื่องข้อที่ตอบต่างกัน</summary>
-        <div class="scroll"><table><tr><th>ข้อ</th><th>สัญญา</th>${FIELDS.map((f, n) => `<th>${n + 1}. ${esc(f.label)}</th>`).join('')}<th>หลักฐาน</th><th>หมายเหตุ</th></tr>${rows}</table></div></details>
-        <div class="row"><label class="check" for="talked"><input type="checkbox" id="talked"${recall('talked') ? ' checked' : ''}> คุยเรื่องแบบฝึกกับผู้ลงรหัสอีกคนแล้ว</label>
+        <p class="small">${hasKey ? `เทียบกับเฉลยของ Percy: ต่างกัน ${nDiff} ช่อง (สีส้ม) อ่านเหตุผลในหมายเหตุของเฉลย แล้วนัดคุยกันเรื่องข้อที่ต่างก่อนเริ่มชุดจริง` : 'Percy ยังไม่ได้ทำเฉลย ตารางเฉลยจะขึ้นที่นี่เมื่อพร้อม ระหว่างนี้เทียบคำตอบกับผู้ลงรหัสอีกคนได้'}</p>
+        <details${firstView ? ' open' : ''}><summary class="small">ตารางคำตอบแบบฝึก${hasKey ? 'และเฉลย' : 'ของคุณ'}</summary>
+        <div class="scroll"><table>${head}${rows}</table></div></details>
+        <div class="row"><label class="check" for="talked"><input type="checkbox" id="talked"${recall('talked') ? ' checked' : ''}> คุยเรื่องแบบฝึกแล้ว</label>
         <button class="btn btn--primary" type="button" id="toMain">เริ่มชุดจริง ${S.items.length} ข้อ</button></div>`;
       box.hidden = false;
       store('practice-panel-seen', true);
@@ -603,6 +640,109 @@
     if (error) { msg($('finishMsg'), 'ส่งไม่สำเร็จ ลองอีกครั้ง', 'warn'); return; }
     S.submitted = true; S.confirmSubmit = false; await renderPanel(); renderSetStatus(); if ($('submittedMsg')) $('submittedMsg').focus();
   }
+
+
+  // ---------- adjudication (study lead only) ----------
+  const A = { rows: [], items: [], idx: 0, ready: false };
+  const adjDone = (g) => g.rows.every((r) => r.decided);
+  async function loadDisputes() {
+    const prog = await peers();
+    const both = !!prog && prog.length >= 2 && prog.every((p) => p.submitted);
+    A.ready = false; A.rows = []; A.items = [];
+    if (!both) return { both, prog };
+    const { data, error } = await sb.rpc('disagreements');
+    if (error) throw error;
+    A.rows = data || []; A.ready = true;
+    const by = new Map();
+    A.rows.forEach((r) => { if (!by.has(r.contactno)) by.set(r.contactno, { id: r.contactno, pos: r.position, rows: [] }); by.get(r.contactno).rows.push(r); });
+    A.items = [...by.values()].sort((x, y) => x.pos - y.pos);
+    return { both, prog };
+  }
+  function adjStatus(t, warn) { $('adjStatus').textContent = t; $('adjStatus').className = 'status' + (warn ? ' warn' : ''); }
+  async function renderAdjudScreen() {
+    show('adjud');
+    $('adjWork').hidden = true; $('adjNavbox').hidden = true;
+    adjStatus('กำลังโหลด…');
+    let st;
+    try { st = await loadDisputes(); } catch (e) { adjStatus('โหลดข้อที่ไม่ตรงกันไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง', true); return; }
+    renderTabs();
+    if (!st.both) {
+      const p = st.prog || [];
+      adjStatus('หน้าตัดสินเปิดได้เมื่อผู้ลงรหัสทั้งสองคนส่งงาน ตอนนี้ ' + (p.map((x) => `${x.label} ชุดจริง ${x.coded}/${S.items.length}${x.submitted ? ' ส่งงานแล้ว' : ''}`).join(' และ ') || 'ยังไม่มีผู้ลงรหัสเข้าระบบ'));
+      return;
+    }
+    if (!A.items.length) { adjStatus('ผู้ลงรหัสสองคนตอบตรงกันทุกหัวข้อ ไม่มีข้อต้องตัดสิน'); return; }
+    $('adjWork').hidden = false; $('adjNavbox').hidden = false;
+    const firstOpen = A.items.findIndex((g) => !adjDone(g));
+    A.idx = clampIdx(recall('idx-adj'), A.items.length);
+    if (adjDone(A.items[A.idx]) && firstOpen >= 0) A.idx = firstOpen;
+    renderAdjNav(true); renderAdjItem();
+  }
+  function renderAdjNav(rebuild) {
+    const nav = $('adjNav');
+    if (rebuild || nav.children.length !== A.items.length) {
+      nav.innerHTML = '';
+      A.items.forEach((g, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = g.pos; b.addEventListener('click', () => adjJump(i)); nav.appendChild(b); });
+    }
+    A.items.forEach((g, i) => {
+      const b = nav.children[i], done = adjDone(g);
+      b.classList.toggle('done', done); b.classList.toggle('cur', i === A.idx);
+      b.setAttribute('aria-label', `ข้อ ${g.pos} ไม่ตรง ${g.rows.length} หัวข้อ ${done ? 'ตัดสินแล้ว' : 'ยังไม่ตัดสิน'}`);
+      if (i === A.idx) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+    });
+    const done = A.items.filter(adjDone).length, fields = A.rows.length;
+    $('adjSum').textContent = `ข้อที่ไม่ตรงกัน ${A.items.length} ข้อ (${fields} หัวข้อ): ตัดสินแล้ว ${done} เหลือ ${A.items.length - done}`;
+    adjStatus(done === A.items.length ? 'ตัดสินครบทุกข้อแล้ว บอก Athena เพื่อดึงผลไปวิเคราะห์ ยังแก้การตัดสินได้' : 'ตัดสินจากข้อความโครงการและ codebook ระหว่างนี้ไม่เปิดผลการสำรวจเดิมหรือคำตอบของ AI');
+    renderTabs();
+  }
+  function renderAdjItem() {
+    const g = A.items[A.idx], it = S.items.find((x) => x.id === g.id);
+    const p = parseItem(it ? it.text : ''), multi = p.reports.length > 1;
+    $('adjReader').innerHTML = `<div class="reader__meta"><span>ข้อ ${g.pos} ในชุดจริง</span><span class="cid">สัญญา ${esc(g.id)}</span></div>
+      <h2 class="title" id="adjItemTitle" tabindex="-1">${esc(p.th || p.en)}</h2>${p.th && p.en ? `<p class="title-en" lang="en">${esc(p.en)}</p>` : ''}
+      ${p.kw ? `<p class="kw">คำสำคัญ: ${esc(p.kw)}</p>` : ''}
+      <div class="reports">${p.reports.map((r) => `<section class="report">${multi ? `<p class="report__h">รายงาน ${esc(r.no)} จาก ${p.reports.length}</p>${r.title ? `<p class="report__t">${esc(r.title)}</p>` : ''}` : ''}${r.parts.map((pt) => `<div class="abs"${pt.en ? ' lang="en"' : ''}><span class="abs__lbl">${pt.en ? 'Abstract (EN)' : 'บทคัดย่อ (TH)'}</span>${absHtml(pt.text)}</div>`).join('')}</section>`).join('')}</div>
+      ${it ? `<p class="srcline small"><a href="${esc(it.url)}" target="_blank" rel="noopener">หน้าโครงการในคลัง สวรส. ↗</a></p>` : ''}`;
+    $('adjFields').innerHTML = g.rows.map((r) => {
+      const f = FIELDS.find((x) => x.key === r.field), n = FIELDS.indexOf(f) + 1;
+      return `<fieldset id="afs-${f.key}"><legend><span class="num">${n}.</span>${esc(f.label)}</legend>
+        <div class="opts">${f.opts.map(([v, l]) => { const id = `a-${f.key}-${v.replace(/[^a-z]/g, '')}`; const tags = (v === r.a ? '<span class="tag">A</span>' : '') + (v === r.b ? '<span class="tag">B</span>' : ''); return `<label class="opt" for="${id}"><input type="radio" name="adj-${f.key}" id="${id}" value="${v}"${r.decided === v ? ' checked' : ''}><span>${esc(l)}${tags}</span></label>`; }).join('')}</div>
+        <details class="def"><summary>นิยาม: ${esc(f.label)}</summary><ul>${f.def.map((d) => `<li>${esc(d)}</li>`).join('')}</ul></details>
+      </fieldset>`;
+    }).join('');
+    const r0 = g.rows[0];
+    $('adjAB').innerHTML = `<div><b>ผู้ลงรหัส A</b><span>หลักฐาน: ${esc(r0.a_evidence || '-')}</span><span>หมายเหตุ: ${esc(r0.a_note || '-')}</span></div>
+      <div><b>ผู้ลงรหัส B</b><span>หลักฐาน: ${esc(r0.b_evidence || '-')}</span><span>หมายเหตุ: ${esc(r0.b_note || '-')}</span></div>`;
+    $('adjNote').value = r0.decided_note || '';
+    msg($('adjMsg'), adjDone(g) ? 'ตัดสินแล้ว' : '', 'ok');
+    $('adjPrev').disabled = A.idx === 0; $('adjNext').disabled = A.idx === A.items.length - 1;
+    store('idx-adj', A.idx);
+  }
+  function adjJump(i) {
+    A.idx = Math.max(0, Math.min(A.items.length - 1, i));
+    renderAdjItem(); renderAdjNav(false);
+    $('adjReader').scrollIntoView({ block: 'start' });
+    const t = $('adjItemTitle'); if (t) t.focus({ preventScroll: true });
+  }
+  $('adjPrev').addEventListener('click', () => adjJump(A.idx - 1));
+  $('adjNext').addEventListener('click', () => adjJump(A.idx + 1));
+  $('adjForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const g = A.items[A.idx], note = $('adjNote').value.trim() || null;
+    const picks = g.rows.map((r) => { const c = document.querySelector(`input[name="adj-${r.field}"]:checked`); return { contactno: g.id, field: r.field, value: c ? c.value : null, note }; });
+    const missing = picks.filter((p) => !p.value);
+    if (missing.length) { msg($('adjMsg'), `ยังไม่ได้เลือก ${missing.length} หัวข้อ`, 'warn'); return; }
+    $('adjSave').disabled = true; msg($('adjMsg'), 'กำลังบันทึก…');
+    const { error } = await sb.from('adjudications').upsert(picks, { onConflict: 'contactno,field' });
+    $('adjSave').disabled = false;
+    if (error) { msg($('adjMsg'), 'บันทึกไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง', 'warn'); return; }
+    picks.forEach((p) => { const r = g.rows.find((x) => x.field === p.field); r.decided = p.value; r.decided_note = note; });
+    const next = A.items.findIndex((x, i) => i > A.idx && !adjDone(x));
+    const wrap = next >= 0 ? next : A.items.findIndex((x) => !adjDone(x));
+    renderAdjNav(false);
+    if (wrap >= 0) { adjJump(wrap); msg($('adjMsg'), `บันทึกข้อ ${g.pos} แล้ว ไปข้อ ${A.items[wrap].pos}`, 'ok'); }
+    else { renderAdjItem(); msg($('adjMsg'), 'บันทึกแล้ว ตัดสินครบทุกข้อ', 'ok'); }
+  });
 
   // ---------- boot ----------
   setDefsAll(false, false);

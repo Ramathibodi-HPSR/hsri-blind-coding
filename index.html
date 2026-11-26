@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500&family=Prompt:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=1.2.0">
+<link rel="stylesheet" href="app.css?v=1.3.0">
 <script>try { const t = JSON.parse(localStorage.getItem('hsri-coding-theme')); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}</script>
 </head>
 <body>
@@ -25,6 +25,7 @@
     <button class="tab" type="button" data-tab="guide" id="tab-guide">1. คู่มือ</button>
     <button class="tab" type="button" data-tab="practice" id="tab-practice">2. แบบฝึก <span class="tab__n" id="tabPracticeN"></span></button>
     <button class="tab" type="button" data-tab="main" id="tab-main">3. ชุดจริง <span class="tab__n" id="tabMainN"></span></button>
+    <button class="tab" type="button" data-tab="adjud" id="tab-adjud" hidden>3. ตัดสิน <span class="tab__n" id="tabAdjN"></span></button>
   </nav>
 </header>
 
@@ -111,6 +112,33 @@
       </form>
     </div>
   </section>
+
+  <!-- ADJUDICATION (study lead only) -->
+  <section id="adjud" class="screen" hidden>
+    <div class="status" id="adjStatus" role="status"></div>
+    <details class="navbox" id="adjNavbox" open hidden>
+      <summary class="navbox__sum"><span id="adjSum"></span></summary>
+      <div class="navbox__in">
+        <p class="legend small"><span class="key key--todo">12</span> ยังไม่ตัดสิน <span class="key key--done">12</span> ตัดสินแล้ว <span class="key key--cur">12</span> ข้อที่เปิดอยู่ (เลขคือลำดับข้อในชุดจริง)</p>
+        <nav class="grid-nav" id="adjNav" aria-label="เลือกข้อที่ไม่ตรงกัน"></nav>
+      </div>
+    </details>
+    <div class="workspace" id="adjWork" hidden>
+      <article class="reader card" id="adjReader"></article>
+      <form class="coder card" id="adjForm" novalidate aria-labelledby="adjTitle">
+        <h2 id="adjTitle">ตัดสินหัวข้อที่สองคนตอบไม่ตรงกัน</h2>
+        <p class="small muted">ผู้ลงรหัสแสดงเป็น A และ B ไม่บอกชื่อ ระบบนี้ไม่มีคำตอบของ AI ตัดสินจากข้อความโครงการและ codebook เลือกค่าใดก็ได้ ไม่จำเป็นต้องเป็นค่าของ A หรือ B</p>
+        <div id="adjFields"></div>
+        <div class="ab small" id="adjAB"></div>
+        <div class="field"><label for="adjNote">เหตุผลของการตัดสิน <small>สั้น ๆ ใช้กับทุกหัวข้อของข้อนี้</small></label><textarea id="adjNote" rows="2"></textarea></div>
+        <div class="actions">
+          <button type="submit" class="btn btn--primary" id="adjSave">บันทึกการตัดสิน แล้วไปข้อต่อไป</button>
+          <span class="actions__nav"><button type="button" class="btn btn--ghost btn--icon" id="adjPrev" aria-label="ข้อก่อนหน้า">‹</button><button type="button" class="btn btn--ghost btn--icon" id="adjNext" aria-label="ข้อถัดไป">›</button></span>
+          <p class="msg" id="adjMsg" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+  </section>
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
@@ -121,6 +149,6 @@
 
 <script src="vendor/supabase.js"></script>
 <script src="config.js"></script>
-<script src="app.js?v=1.2.1"></script>
+<script src="app.js?v=1.3.0"></script>
 </body>
 </html>

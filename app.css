@@ -218,3 +218,13 @@ fieldset.missing .need { display: inline; }
 @media (min-width: 960px) { .mobilebar { display: none !important; } }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* practice key and adjudication */
+.panel td.diff { background: var(--warn-soft); color: var(--warn); font-weight: 500; }
+.panel tr.key td { color: var(--muted); }
+.panel tr.key td.diff { color: var(--warn); }
+.tag { display: inline-block; margin-left: 6px; font: 600 var(--fs-tiny)/1.3 var(--font-mono); padding: 0 5px; border-radius: 3px; border: 1px solid currentColor; }
+.ab { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.ab > div { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 10px; display: grid; gap: 4px; font-family: var(--font-read); }
+.ab b { font-family: var(--font-ui); color: var(--ink); }
+
