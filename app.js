@@ -105,7 +105,14 @@
     const email = user.includes('@') ? user : `${user}@${CFG.loginDomain}`;
     const { error } = await sb.auth.signInWithPassword({ email, password: pass });
     $('lgBtn').disabled = false;
-    if (error) { msg($('lgMsg'), 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง ลองอีกครั้ง หรือขอรหัสใหม่จาก Percy', 'warn'); return; }
+    if (error) {
+      const code = error.code || '', text = error.message || '';
+      const why = code === 'email_not_confirmed' || /not confirmed/i.test(text) ? 'บัญชีนี้ยังไม่ได้ยืนยันอีเมล ขอให้ Percy กดยืนยันบัญชีใน Supabase'
+        : code === 'invalid_credentials' || /invalid login/i.test(text) ? `ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (ระบบลองเข้าด้วย ${email}) ลองอีกครั้ง หรือขอรหัสใหม่จาก Percy`
+        : 'เข้าสู่ระบบไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง';
+      msg($('lgMsg'), why, 'warn');
+      return;
+    }
     $('lgPass').value = '';
     await start();
   });
@@ -130,9 +137,11 @@
     S.user = session.user;
     const who = await sb.from('coders').select('label').maybeSingle();
     if (who.error || !who.data) {
+      const email = session.user.email;
       await sb.auth.signOut();
       show('login');
-      msg($('lgMsg'), 'บัญชีนี้ยังไม่ได้เปิดสิทธิ์ลงรหัส ติดต่อ Percy', 'warn');
+      msg($('lgMsg'), who.error ? 'เข้าสู่ระบบได้ แต่ตรวจรายชื่อผู้ลงรหัสไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง'
+        : `เข้าสู่ระบบได้ แต่ ${email} ยังไม่อยู่ในรายชื่อผู้ลงรหัส ติดต่อ Percy`, 'warn');
       return;
     }
     S.label = who.data.label;
